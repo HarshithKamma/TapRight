@@ -155,20 +155,23 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, justifyContent: 'center', flexGrow: 1 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 10 },
   subtitle: { fontSize: 16, color: '#555', marginBottom: 30 },
-  input: { 
-    width: '100%', 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    borderRadius: 10, 
-    padding: 14, 
+  input: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 15,
-    fontSize: 16 
+    fontSize: 16
   },
-  button: { 
-    backgroundColor: '#000', 
-    paddingVertical: 14, 
-    borderRadius: 10, 
-    marginTop: 10 
+  button: {
+    backgroundColor: '#000',
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 10
   },
+  buttonDisabled: { backgroundColor: '#666' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16, textAlign: 'center' },
+  linkButton: { marginTop: 20 },
+  linkText: { color: '#007AFF', fontSize: 16, textAlign: 'center' },
 });
