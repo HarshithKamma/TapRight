@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { notificationService } from '../services/notificationService';
+import { VenueCategory } from '../services/venueCategorization';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -60,11 +61,34 @@ export default function NotificationSetup() {
 
   const sendTestNotification = async () => {
     try {
-      await notificationService.sendTestNotification();
-      Alert.alert('Test Sent', 'Check your notifications for the test message!');
-      loadNotificationData(); // Reload to update daily count
+      // Try using the notification service first
+      const sent = await notificationService.sendTestNotification();
+      
+      // Also try direct notification for immediate testing in Expo Go
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🧪 Test Notification',
+            body: 'This is a test notification from TapRight!',
+            data: { type: 'test' },
+            sound: true,
+          },
+          trigger: null, // Send immediately
+        });
+        
+        Alert.alert('✅ Notification Sent!', 'Check your notification center. If you don\'t see it, notifications may not be fully supported in Expo Go.');
+        loadNotificationData();
+      } catch (directError) {
+        if (sent) {
+          Alert.alert('Test Sent', 'Check your notifications for the test message!');
+        } else {
+          Alert.alert('⚠️ Limited Support', 'Notifications have limited support in Expo Go. For full testing, create a development build.');
+          console.error('Notification error:', directError);
+        }
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send test notification');
+      Alert.alert('Error', 'Failed to send test notification. Check console for details.');
+      console.error('Notification error:', error);
     }
   };
 
@@ -74,7 +98,7 @@ export default function NotificationSetup() {
       const mockVenue = {
         id: 'test_target',
         name: 'Target',
-        category: 'retail_store' as any,
+        category: VenueCategory.RETAIL_STORE,
         confidence: 0.9,
         dataSource: 'manual' as const,
         lastVerified: new Date(),
@@ -82,10 +106,36 @@ export default function NotificationSetup() {
         longitude: 0,
       };
 
-      await notificationService.sendLocationBasedNotification(mockVenue);
-      Alert.alert('Test Sent', 'Check your notifications for the location-based suggestion!');
+      const sent = await notificationService.sendLocationBasedNotification(mockVenue);
+      
+      // Also try direct notification
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '💳 Card Suggestion',
+            body: 'Use your Best Rewards Card at Target for 5% back!',
+            data: {
+              type: 'location_recommendation',
+              venueId: mockVenue.id,
+              venueName: mockVenue.name,
+            },
+            sound: true,
+          },
+          trigger: null, // Send immediately
+        });
+        
+        Alert.alert('✅ Notification Sent!', 'Check your notification center for the card suggestion.');
+      } catch (directError) {
+        if (sent) {
+          Alert.alert('Test Sent', 'Check your notifications for the location-based suggestion!');
+        } else {
+          Alert.alert('⚠️ Limited Support', 'Location notifications may not work fully in Expo Go. Try a development build for full support.');
+          console.error('Notification error:', directError);
+        }
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send location test notification');
+      Alert.alert('Error', 'Failed to send location test notification. Check console for details.');
+      console.error('Notification error:', error);
     }
   };
 

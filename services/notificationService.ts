@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { locationService, LocationRecord } from './locationService';
 import { venueCategorizationService, VenueInfo, VenueCategory } from './venueCategorization';
 import { cardRecommendationService } from './cardRecommendation';
@@ -53,19 +54,33 @@ class NotificationService {
 
   private dailyNotificationCount: number = 0;
   private lastNotificationDate: string = '';
+  private initialized: boolean = false;
+  private preferencesLoaded: boolean = false;
 
   constructor() {
-    this.initializeNotifications();
-    this.loadPreferences();
+    // Lazy initialization - only on native platforms
+    if (Platform.OS !== 'web') {
+      this.initializeNotifications().catch(() => {
+        // Silently fail if notifications are not available
+      });
+      this.loadPreferences().catch(() => {
+        // Silently fail if AsyncStorage is not available
+      });
+    }
   }
 
   // Initialize notification system
   private async initializeNotifications(): Promise<void> {
+    if (Platform.OS === 'web' || this.initialized) {
+      return;
+    }
+    
     try {
       // Request permissions
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
         console.log('Notification permission not granted');
+        this.initialized = true;
         return;
       }
 
@@ -80,13 +95,19 @@ class NotificationService {
 
       // Listen for notification responses
       Notifications.addNotificationResponseReceivedListener(this.handleNotificationResponse.bind(this));
+      this.initialized = true;
     } catch (error) {
-      console.error('Error initializing notifications:', error);
+      // Silently fail - notifications may not be available
+      this.initialized = true;
     }
   }
 
   // Load user preferences
   private async loadPreferences(): Promise<void> {
+    if (Platform.OS === 'web' || this.preferencesLoaded) {
+      return;
+    }
+    
     try {
       const prefs = await AsyncStorage.getItem('notificationPreferences');
       if (prefs) {
@@ -108,18 +129,25 @@ class NotificationService {
         await AsyncStorage.setItem('dailyNotificationCount', '0');
         await AsyncStorage.setItem('lastNotificationDate', today);
       }
+      this.preferencesLoaded = true;
     } catch (error) {
-      console.error('Error loading notification preferences:', error);
+      // Silently fail - AsyncStorage may not be available
+      this.preferencesLoaded = true;
     }
   }
 
   // Save preferences
   async savePreferences(preferences: Partial<NotificationPreferences>): Promise<void> {
+    if (Platform.OS === 'web') {
+      this.preferences = { ...this.preferences, ...preferences };
+      return;
+    }
+    
     try {
       this.preferences = { ...this.preferences, ...preferences };
       await AsyncStorage.setItem('notificationPreferences', JSON.stringify(this.preferences));
     } catch (error) {
-      console.error('Error saving notification preferences:', error);
+      // Silently fail - AsyncStorage may not be available
     }
   }
 
@@ -171,6 +199,11 @@ class NotificationService {
 
   // Send notification
   async sendNotification(notification: SmartNotification): Promise<boolean> {
+    if (Platform.OS === 'web') {
+      // Web notifications are handled differently
+      return false;
+    }
+    
     try {
       if (!this.canSendNotification()) {
         console.log('Cannot send notification - limits or quiet hours');
@@ -190,12 +223,18 @@ class NotificationService {
 
       // Update daily count
       this.dailyNotificationCount++;
-      await AsyncStorage.setItem('dailyNotificationCount', this.dailyNotificationCount.toString());
+      if (Platform.OS !== 'web') {
+        try {
+          await AsyncStorage.setItem('dailyNotificationCount', this.dailyNotificationCount.toString());
+        } catch (error) {
+          // Silently fail
+        }
+      }
 
       console.log(`Notification sent: ${notification.title}`);
       return true;
     } catch (error) {
-      console.error('Error sending notification:', error);
+      // Silently fail - notifications may not be available
       return false;
     }
   }
@@ -344,6 +383,10 @@ class NotificationService {
 
   // Schedule notification for later
   async scheduleNotification(notification: SmartNotification, scheduledTime: Date): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       const trigger: Notifications.NotificationTriggerInput = {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -357,17 +400,21 @@ class NotificationService {
 
       await this.sendNotification(scheduledNotification);
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      // Silently fail
     }
   }
 
   // Cancel scheduled notification
   async cancelNotification(notificationId: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
       console.log(`Notification cancelled: ${notificationId}`);
     } catch (error) {
-      console.error('Error cancelling notification:', error);
+      // Silently fail
     }
   }
 
@@ -385,27 +432,41 @@ class NotificationService {
   async resetDailyCount(): Promise<void> {
     this.dailyNotificationCount = 0;
     this.lastNotificationDate = new Date().toDateString();
-    await AsyncStorage.setItem('dailyNotificationCount', '0');
-    await AsyncStorage.setItem('lastNotificationDate', this.lastNotificationDate);
+    if (Platform.OS !== 'web') {
+      try {
+        await AsyncStorage.setItem('dailyNotificationCount', '0');
+        await AsyncStorage.setItem('lastNotificationDate', this.lastNotificationDate);
+      } catch (error) {
+        // Silently fail
+      }
+    }
   }
 
   // Get all scheduled notifications
   async getScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
+    if (Platform.OS === 'web') {
+      return [];
+    }
+    
     try {
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (error) {
-      console.error('Error getting scheduled notifications:', error);
+      // Silently fail
       return [];
     }
   }
 
   // Clear all notifications
   async clearAllNotifications(): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       await Notifications.dismissAllNotificationsAsync();
       console.log('All notifications cleared');
     } catch (error) {
-      console.error('Error clearing notifications:', error);
+      // Silently fail
     }
   }
 

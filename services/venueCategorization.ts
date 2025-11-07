@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { LocationRecord } from './locationService';
 
 export enum VenueCategory {
@@ -88,9 +89,15 @@ class VenueCategorizationService {
   private cache: Map<string, VenueInfo> = new Map();
   private cacheExpiry: Map<string, Date> = new Map();
   private readonly CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private cacheLoaded: boolean = false;
 
   constructor() {
-    this.loadCacheFromStorage();
+    // Lazy load cache - only on native platforms
+    if (Platform.OS !== 'web') {
+      this.loadCacheFromStorage().catch(() => {
+        // Silently fail if AsyncStorage is not available
+      });
+    }
   }
 
   // Categorize venue based on location
@@ -436,6 +443,10 @@ class VenueCategorizationService {
 
   // Load cache from storage
   private async loadCacheFromStorage(): Promise<void> {
+    if (Platform.OS === 'web' || this.cacheLoaded) {
+      return;
+    }
+    
     try {
       const cachedData = await AsyncStorage.getItem('venueCache');
       if (cachedData) {
@@ -447,13 +458,19 @@ class VenueCategorizationService {
         // Clean expired entries
         this.cleanExpiredCache();
       }
+      this.cacheLoaded = true;
     } catch (error) {
-      console.error('Error loading venue cache:', error);
+      // Silently fail - AsyncStorage may not be available in all environments
+      this.cacheLoaded = true;
     }
   }
 
   // Save cache to storage
   private async saveCacheToStorage(): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       const venues = Object.fromEntries(this.cache);
       const expiry = Object.fromEntries(this.cacheExpiry);
@@ -463,7 +480,7 @@ class VenueCategorizationService {
         expiry,
       }));
     } catch (error) {
-      console.error('Error saving venue cache:', error);
+      // Silently fail - AsyncStorage may not be available
     }
   }
 
@@ -518,7 +535,13 @@ class VenueCategorizationService {
   async clearCache(): Promise<void> {
     this.cache.clear();
     this.cacheExpiry.clear();
-    await AsyncStorage.removeItem('venueCache');
+    if (Platform.OS !== 'web') {
+      try {
+        await AsyncStorage.removeItem('venueCache');
+      } catch (error) {
+        // Silently fail
+      }
+    }
   }
 }
 

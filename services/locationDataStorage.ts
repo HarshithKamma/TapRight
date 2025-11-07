@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { LocationRecord } from './locationService';
 import { VenueInfo, VenueCategory } from './venueCategorization';
 
@@ -30,20 +31,32 @@ class LocationDataStorageService {
   private readonly RETENTION_DAYS = 35; // 5 weeks for analysis
   private readonly VISIT_THRESHOLD_METERS = 50; // 50 meters threshold for visit detection
   private readonly MIN_VISIT_DURATION_MINUTES = 2; // Minimum duration to count as a visit
+  private initialized: boolean = false;
 
   constructor() {
-    this.initializeData();
+    // Lazy initialization - only on native platforms
+    if (Platform.OS !== 'web') {
+      this.initializeData().catch(() => {
+        // Silently fail if AsyncStorage is not available
+      });
+    }
   }
 
   // Initialize storage if needed
   private async initializeData(): Promise<void> {
+    if (Platform.OS === 'web' || this.initialized) {
+      return;
+    }
+    
     try {
       const existingData = await AsyncStorage.getItem(this.STORAGE_KEY);
       if (!existingData) {
         await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify([]));
       }
+      this.initialized = true;
     } catch (error) {
-      console.error('Error initializing location storage:', error);
+      // Silently fail - AsyncStorage may not be available
+      this.initialized = true;
     }
   }
 
@@ -197,6 +210,10 @@ class LocationDataStorageService {
 
   // Get all visits
   async getAllVisits(): Promise<VisitRecord[]> {
+    if (Platform.OS === 'web') {
+      return [];
+    }
+    
     try {
       const data = await AsyncStorage.getItem(this.STORAGE_KEY);
       if (!data) {
@@ -374,10 +391,14 @@ class LocationDataStorageService {
 
   // Save visits to storage
   private async saveVisits(visits: VisitRecord[]): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(visits));
     } catch (error) {
-      console.error('Error saving visits:', error);
+      // Silently fail - AsyncStorage may not be available
     }
   }
 
@@ -420,12 +441,16 @@ class LocationDataStorageService {
 
   // Clear all data
   async clearAllData(): Promise<void> {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    
     try {
       await AsyncStorage.removeItem(this.STORAGE_KEY);
       await this.initializeData();
       console.log('All location visit data cleared');
     } catch (error) {
-      console.error('Error clearing all data:', error);
+      // Silently fail
     }
   }
 
