@@ -1,27 +1,75 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
 
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { signup, isLoading: authLoading } = useAuth();
 
   const handleSignUp = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      alert('Please fill in all fields');
+    // Basic validation
+    if (!name.trim() || !email.trim() || !phone.trim() || !password.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    // Store user data locally
-    await AsyncStorage.setItem('userName', name);
-    await AsyncStorage.setItem('userEmail', email);
-    await AsyncStorage.setItem('userPhone', phone);
+    // Name validation
+    if (name.trim().length < 2) {
+      Alert.alert('Error', 'Please enter a valid name');
+      return;
+    }
 
-    // Navigate to card selection
-    router.push('/select-cards');
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    // Phone validation (basic)
+    if (phone.trim().length < 10) {
+      Alert.alert('Error', 'Please enter a valid phone number');
+      return;
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    // Password confirmation
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const success = await signup(name.trim(), email.trim(), phone.trim(), password);
+
+      if (success) {
+        router.replace('/select-cards');
+      } else {
+        Alert.alert('Signup Failed', 'An account with this email already exists');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignIn = () => {
+    router.push('/login');
   };
 
   return (
