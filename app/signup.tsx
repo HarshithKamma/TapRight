@@ -73,7 +73,7 @@ export default function SignUp() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
@@ -88,6 +88,7 @@ export default function SignUp() {
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
+          editable={!isLoading && !authLoading}
         />
 
         <TextInput
@@ -98,6 +99,7 @@ export default function SignUp() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading && !authLoading}
         />
 
         <TextInput
@@ -107,10 +109,41 @@ export default function SignUp() {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+          editable={!isLoading && !authLoading}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-          <Text style={styles.buttonText}>Sign Up</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#888"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          editable={!isLoading && !authLoading}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Confirm Password"
+          placeholderTextColor="#888"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          editable={!isLoading && !authLoading}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, (isLoading || authLoading) && styles.buttonDisabled]}
+          onPress={handleSignUp}
+          disabled={isLoading || authLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isLoading || authLoading ? 'Creating Account...' : 'Sign Up'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.linkButton} onPress={handleSignIn}>
+          <Text style={styles.linkText}>Already have an account? Sign In</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
