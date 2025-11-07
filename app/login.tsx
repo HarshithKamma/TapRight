@@ -92,7 +92,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 },
   title: { fontSize: 26, fontWeight: '700', marginBottom: 10 },
   subtitle: { fontSize: 16, color: '#555', marginBottom: 30, textAlign: 'center' },
-  input: { width: '100%', borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, marginBottom: 20 },
-  button: { backgroundColor: '#000', paddingVertical: 14, paddingHorizontal: 50, borderRadius: 10 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  input: { width: '100%', borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 14, marginBottom: 15, fontSize: 16 },
+  button: { backgroundColor: '#000', paddingVertical: 14, paddingHorizontal: 50, borderRadius: 10, width: '100%' },
+  buttonDisabled: { backgroundColor: '#666' },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16, textAlign: 'center' },
+  linkButton: { marginTop: 20 },
+  linkText: { color: '#007AFF', fontSize: 16 },
 });
