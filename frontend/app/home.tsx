@@ -248,6 +248,39 @@ export default function HomeScreen() {
     }
   };
 
+  const registerForPushNotifications = async () => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        console.log('Notification permission not granted');
+        return;
+      }
+
+      // Get the Expo Push Token
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: 'your-project-id', // This will be auto-detected in Expo Go
+      });
+      
+      const token = tokenData.data;
+      setExpoPushToken(token);
+      
+      // Log to console for easy copying
+      console.log('📱 EXPO PUSH TOKEN:', token);
+      console.log('🔗 Test notifications at: https://expo.dev/notifications');
+      console.log('Copy this token and paste it into the Expo notification tool');
+      
+    } catch (error) {
+      console.error('Error getting push token:', error);
+    }
+  };
+
   const handleLocationResponse = (data: any) => {
     if (data.found && data.recommendation) {
       const rec = data.recommendation;
