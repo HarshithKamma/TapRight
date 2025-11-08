@@ -98,6 +98,56 @@ export default function HomeScreen() {
         return;
       }
 
+      // Define the background task only when starting tracking
+      TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
+        if (error) {
+          console.error('Background location error:', error);
+          return;
+        }
+        if (data) {
+          const { locations } = data;
+          const location = locations[0];
+          
+          if (location) {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const user = await AsyncStorage.getItem('user');
+              
+              if (!token || !user) return;
+              
+              const userData = JSON.parse(user);
+              
+              const response = await axios.post(
+                `${BACKEND_URL}/api/location/check`,
+                {
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  user_id: userData.id,
+                },
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              if (response.data.found && response.data.recommendation) {
+                const rec = response.data.recommendation;
+                await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: `💳 ${rec.merchant_name}`,
+                    body: rec.message,
+                    sound: true,
+                    priority: Notifications.AndroidNotificationPriority.HIGH,
+                  },
+                  trigger: null,
+                });
+              }
+            } catch (error) {
+              console.error('Failed to check location:', error);
+            }
+          }
+        }
+      });
+
       const { status } = await Location.getBackgroundPermissionsAsync();
       if (status === 'granted') {
         await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
@@ -116,7 +166,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Failed to start background tracking:', error);
-      Alert.alert('Error', 'Failed to start background tracking. This feature requires a real mobile device.');
+      Alert.alert('Error', 'Background tracking not supported in Expo Go. Works in development builds only.');
     }
   };
 
