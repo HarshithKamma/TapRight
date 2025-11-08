@@ -29,17 +29,31 @@ export default function CardSelectionScreen() {
   const router = useRouter();
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [initialCards, setInitialCards] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadCards();
+    loadCardsAndUserWallet();
   }, []);
 
-  const loadCards = async () => {
+  const loadCardsAndUserWallet = async () => {
     try {
-      const response = await axios.get(`${BACKEND_URL}/api/cards`);
-      setCards(response.data);
+      const token = await AsyncStorage.getItem('token');
+      
+      // Load all available cards
+      const cardsResponse = await axios.get(`${BACKEND_URL}/api/cards`);
+      setCards(cardsResponse.data);
+      
+      // Load user's current wallet
+      const userCardsResponse = await axios.get(`${BACKEND_URL}/api/user-cards`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      // Pre-select user's current cards
+      const userCardIds = new Set(userCardsResponse.data.map((card: any) => card.card_id));
+      setSelectedCards(userCardIds);
+      setInitialCards(userCardIds);
     } catch (error) {
       Alert.alert('Error', 'Failed to load cards');
     } finally {
