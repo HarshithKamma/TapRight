@@ -330,7 +330,13 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Wallet</Text>
-            <Text style={styles.sectionBadge}>{cards.length} Cards</Text>
+            <TouchableOpacity
+              style={styles.manageCardsButton}
+              onPress={() => router.push('/card-selection')}
+            >
+              <Ionicons name="settings-outline" size={20} color="#667eea" />
+              <Text style={styles.manageCardsText}>Manage Cards</Text>
+            </TouchableOpacity>
           </View>
 
           {cards.length === 0 ? (
@@ -345,23 +351,25 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            cards.map((card) => (
-              <View key={card.id} style={styles.cardItem}>
-                <View
-                  style={[
-                    styles.cardColorBar,
-                    { backgroundColor: card.card_color },
-                  ]}
-                />
-                <View style={styles.cardDetails}>
-                  <Text style={styles.cardName}>{card.card_name}</Text>
-                  <Text style={styles.cardIssuer}>{card.card_issuer}</Text>
-                  <Text style={styles.cardRewards}>
-                    {getRewardsSummary(card.rewards)}
-                  </Text>
+            <>
+              {cards.map((card) => (
+                <View key={card.id} style={styles.cardItem}>
+                  <View
+                    style={[
+                      styles.cardColorBar,
+                      { backgroundColor: card.card_color },
+                    ]}
+                  />
+                  <View style={styles.cardDetails}>
+                    <Text style={styles.cardName}>{card.card_name}</Text>
+                    <Text style={styles.cardIssuer}>{card.card_issuer}</Text>
+                    <Text style={styles.cardRewards}>
+                      {getRewardsSummary(card.rewards)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              ))}
+            </>
           )}
         </View>
 
