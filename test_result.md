@@ -101,3 +101,172 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Build TapWise - A mobile app that uses location tracking to detect nearby merchants and recommends the best credit card from user's wallet for maximum rewards. Includes onboarding, card selection, background location tracking, and push notifications."
+
+backend:
+  - task: "User Authentication (Signup/Login)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented JWT-based auth with bcrypt password hashing. Endpoints: POST /api/auth/signup, POST /api/auth/login"
+
+  - task: "Credit Card Database & Management"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created predefined credit card database with 7 popular cards (Amex, Chase, Discover, Citi, Capital One). Includes reward categories and rates. Endpoints: GET /api/cards, POST /api/user-cards, GET /api/user-cards, DELETE /api/user-cards/{id}"
+
+  - task: "POI Location Database"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created POI database with sample locations (Starbucks, Chevron, Whole Foods, etc.) across categories: coffee, gas, grocery, dining, retail. Includes geofencing with radius."
+
+  - task: "Location Check & Recommendation Engine"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented Haversine formula for distance calculation, POI matching, card-category reward matching, and notification throttling (4-hour window). Endpoint: POST /api/location/check"
+
+  - task: "Profile & Questionnaire Management"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Optional questionnaire for user spending habits. Endpoints: GET /api/profile, PUT /api/profile/questionnaire"
+
+frontend:
+  - task: "Splash Screen"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created splash screen with gradient background, app logo, features showcase, and CTA buttons for signup/login"
+
+  - task: "Authentication Screens (Login/Signup)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/login.tsx, /app/frontend/app/signup.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented login and signup forms with validation, password visibility toggle, and session management using AsyncStorage"
+
+  - task: "Questionnaire Screen"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/questionnaire.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Optional questionnaire for monthly rent, card payments, and expenses. Includes skip option"
+
+  - task: "Card Selection Screen"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/card-selection.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Multi-select card interface showing all available cards with rewards summary. Users can select multiple cards for their wallet"
+
+  - task: "Permissions Screen"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/permissions.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Requests location (foreground + background) and notification permissions with clear explanations"
+
+  - task: "Home Screen with Background Tracking"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/home.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Main dashboard showing user wallet, background tracking toggle, manual location check button, and card list. Implements expo-task-manager for background location tracking every 2 minutes"
+
+  - task: "Background Location Service"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/home.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Background task using expo-task-manager that checks location every 2 minutes, sends to backend, and displays local push notifications with card recommendations"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "User Authentication (Signup/Login)"
+    - "Credit Card Database & Management"
+    - "POI Location Database"
+    - "Location Check & Recommendation Engine"
+    - "Profile & Questionnaire Management"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Initial TapWise MVP implementation complete. All backend endpoints and frontend screens created. Backend includes JWT auth, credit card database with 7 popular cards, POI database with sample locations, location-based recommendation engine with Haversine distance calculation, and notification throttling. Frontend includes complete onboarding flow, card selection, permissions handling, and home screen with background location tracking. Ready for backend testing."
