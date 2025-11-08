@@ -413,43 +413,9 @@ export default function HomeScreen() {
           <Text style={styles.infoText}>
             {Platform.OS === 'web'
               ? '📱 For full location tracking, download the Expo Go app and scan the QR code. Web version allows manual location checks only.'
-              : 'TapWise monitors your location in the background and sends notifications when you\'re near merchants with rewards.'}
+              : 'TapWise monitors your location in the background and sends local notifications when you\'re near merchants with rewards. Enable tracking above to start receiving recommendations!'}
           </Text>
         </View>
-
-        {expoPushToken && Platform.OS !== 'web' && (
-          <View style={styles.tokenBox}>
-            <View style={styles.tokenHeader}>
-              <Ionicons name="notifications" size={20} color="#667eea" />
-              <Text style={styles.tokenTitle}>Test Notifications</Text>
-            </View>
-            <Text style={styles.tokenLabel}>Your Expo Push Token:</Text>
-            <TouchableOpacity
-              style={styles.tokenContainer}
-              onPress={() => {
-                Alert.alert(
-                  'Push Token',
-                  expoPushToken,
-                  [
-                    { text: 'OK' },
-                    {
-                      text: 'View in Console',
-                      onPress: () => console.log('EXPO PUSH TOKEN:', expoPushToken),
-                    },
-                  ]
-                );
-              }}
-            >
-              <Text style={styles.tokenText} numberOfLines={1} ellipsizeMode="middle">
-                {expoPushToken}
-              </Text>
-              <Ionicons name="copy-outline" size={20} color="#667eea" />
-            </TouchableOpacity>
-            <Text style={styles.tokenHint}>
-              Tap to view • Check console logs • Test at expo.dev/notifications
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
