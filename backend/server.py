@@ -401,13 +401,14 @@ async def check_location(
     )
     await db.notification_logs.insert_one(log.dict())
     
-    # Create recommendation
+    # Create recommendation with proper formatting
+    reward_text = f"{best_rate}% back" if best_rate < 10 else f"{int(best_rate)}x points"
     recommendation = Recommendation(
         merchant_name=nearby_poi.name,
         category=nearby_poi.category,
         recommended_card=best_card.card_name,
-        reward_rate=f"{best_rate}%" if best_rate < 10 else f"{int(best_rate)}x points",
-        message=f"Hey! You're at {nearby_poi.name} - use your {best_card.card_name} for {best_rate}% cashback on {nearby_poi.category}!"
+        reward_rate=reward_text,
+        message=f"Hey, you're at {nearby_poi.name}! Use {best_card.card_name} to get {reward_text}."
     )
     
     return {
