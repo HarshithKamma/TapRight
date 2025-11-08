@@ -134,6 +134,16 @@ export default function HomeScreen() {
 
   const startBackgroundTracking = async () => {
     try {
+      // Background tracking only works on native platforms
+      if (Platform.OS === 'web') {
+        Alert.alert(
+          'Background Tracking Unavailable',
+          'Background location tracking requires a native mobile device (iOS/Android). Use "Check Current Location" button to test the recommendation feature on web.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
       const { status } = await Location.getBackgroundPermissionsAsync();
       if (status === 'granted') {
         await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
@@ -146,9 +156,13 @@ export default function HomeScreen() {
           },
         });
         setTrackingEnabled(true);
+        Alert.alert('Tracking Started', 'TapWise is now monitoring your location for nearby merchants.');
+      } else {
+        Alert.alert('Permission Required', 'Background location permission is required for automatic tracking.');
       }
     } catch (error) {
       console.error('Failed to start background tracking:', error);
+      Alert.alert('Error', 'Failed to start background tracking. This feature requires a real mobile device.');
     }
   };
 
