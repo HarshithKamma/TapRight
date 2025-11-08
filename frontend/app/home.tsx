@@ -472,6 +472,20 @@ const styles = StyleSheet.create({
     color: '#667eea',
     fontWeight: '600',
   },
+  manageCardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e0e7ff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  manageCardsText: {
+    fontSize: 14,
+    color: '#667eea',
+    fontWeight: '600',
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
