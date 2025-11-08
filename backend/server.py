@@ -503,32 +503,37 @@ async def initialize_credit_cards():
         await db.credit_cards.insert_one(card.dict())
 
 async def initialize_poi_locations():
-    """Initialize sample POI locations across USA"""
+    """Initialize sample POI locations across USA with broader coverage"""
     pois = [
-        # Starbucks locations
-        POILocation(name="Starbucks Downtown", category="coffee", latitude=37.7749, longitude=-122.4194),
-        POILocation(name="Starbucks Times Square", category="coffee", latitude=40.7580, longitude=-73.9855),
-        POILocation(name="Starbucks LA", category="coffee", latitude=34.0522, longitude=-118.2437),
+        # Starbucks locations (coffee)
+        POILocation(name="Starbucks Downtown", category="coffee", latitude=37.7749, longitude=-122.4194, radius=200.0),
+        POILocation(name="Starbucks Times Square", category="coffee", latitude=40.7580, longitude=-73.9855, radius=200.0),
+        POILocation(name="Starbucks LA", category="coffee", latitude=34.0522, longitude=-118.2437, radius=200.0),
         
         # Gas stations
-        POILocation(name="Chevron Station", category="gas", latitude=37.7849, longitude=-122.4094),
-        POILocation(name="Shell Gas", category="gas", latitude=40.7480, longitude=-73.9755),
-        POILocation(name="Exxon Station", category="gas", latitude=34.0422, longitude=-118.2537),
+        POILocation(name="Chevron Station", category="gas", latitude=37.7849, longitude=-122.4094, radius=200.0),
+        POILocation(name="Shell Gas", category="gas", latitude=40.7480, longitude=-73.9755, radius=200.0),
+        POILocation(name="Exxon Station", category="gas", latitude=34.0422, longitude=-118.2537, radius=200.0),
+        POILocation(name="BP Gas Station", category="gas", latitude=37.7949, longitude=-122.4194, radius=200.0),
         
         # Grocery stores
-        POILocation(name="Whole Foods Market", category="grocery", latitude=37.7849, longitude=-122.4294),
-        POILocation(name="Trader Joe's", category="grocery", latitude=40.7680, longitude=-73.9655),
-        POILocation(name="Safeway", category="grocery", latitude=34.0622, longitude=-118.2337),
+        POILocation(name="Whole Foods Market", category="grocery", latitude=37.7849, longitude=-122.4294, radius=200.0),
+        POILocation(name="Trader Joe's", category="grocery", latitude=40.7680, longitude=-73.9655, radius=200.0),
+        POILocation(name="Safeway", category="grocery", latitude=34.0622, longitude=-118.2337, radius=200.0),
+        POILocation(name="Kroger", category="grocery", latitude=37.7449, longitude=-122.4394, radius=200.0),
         
         # Restaurants
-        POILocation(name="Chipotle", category="dining", latitude=37.7649, longitude=-122.4394),
-        POILocation(name="McDonald's", category="dining", latitude=40.7380, longitude=-73.9955),
-        POILocation(name="Olive Garden", category="dining", latitude=34.0322, longitude=-118.2637),
+        POILocation(name="Chipotle", category="dining", latitude=37.7649, longitude=-122.4394, radius=150.0),
+        POILocation(name="McDonald's", category="dining", latitude=40.7380, longitude=-73.9955, radius=150.0),
+        POILocation(name="Olive Garden", category="dining", latitude=34.0322, longitude=-118.2637, radius=150.0),
+        POILocation(name="Panera Bread", category="dining", latitude=37.7849, longitude=-122.4494, radius=150.0),
         
-        # Retail
-        POILocation(name="Target", category="retail", latitude=37.7549, longitude=-122.4494),
-        POILocation(name="Walmart", category="retail", latitude=40.7280, longitude=-73.9855),
-        POILocation(name="Best Buy", category="retail", latitude=34.0222, longitude=-118.2737),
+        # Retail stores
+        POILocation(name="Target", category="retail", latitude=37.7549, longitude=-122.4494, radius=250.0),
+        POILocation(name="Walmart", category="retail", latitude=40.7280, longitude=-73.9855, radius=250.0),
+        POILocation(name="Best Buy", category="retail", latitude=34.0222, longitude=-118.2737, radius=200.0),
+        POILocation(name="CVS Pharmacy", category="retail", latitude=37.7649, longitude=-122.4194, radius=150.0),
+        POILocation(name="Walgreens", category="retail", latitude=40.7580, longitude=-73.9755, radius=150.0),
     ]
     
     for poi in pois:
