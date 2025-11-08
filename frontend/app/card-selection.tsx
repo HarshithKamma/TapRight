@@ -81,17 +81,46 @@ export default function CardSelectionScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       
-      for (const cardId of selectedCards) {
-        await axios.post(
-          `${BACKEND_URL}/api/user-cards?card_id=${cardId}`,
-          {},
+      // Find cards to add (newly selected)
+      const cardsToAdd = Array.from(selectedCards).filter(
+        cardId => !initialCards.has(cardId)
+      );
+      
+      // Find cards to remove (deselected)
+      const cardsToRemove = Array.from(initialCards).filter(
+        cardId => !selectedCards.has(cardId)
+      );
+      
+      // Add new cards
+      for (const cardId of cardsToAdd) {
+        try {
+          await axios.post(
+            `${BACKEND_URL}/api/user-cards?card_id=${cardId}`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+        } catch (error: any) {
+          // Skip if already exists
+          if (error.response?.status !== 400) {
+            throw error;
+          }
+        }
+      }
+      
+      // Remove deselected cards
+      for (const cardId of cardsToRemove) {
+        await axios.delete(
+          `${BACKEND_URL}/api/user-cards/${cardId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
       }
 
-      router.replace('/permissions');
+      Alert.alert('Success', 'Wallet updated successfully!');
+      router.back();
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to save cards');
     } finally {
