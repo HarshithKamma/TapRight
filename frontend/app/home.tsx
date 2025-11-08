@@ -101,10 +101,12 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState<string>('');
 
   useEffect(() => {
     loadUserData();
     startBackgroundTracking();
+    registerForPushNotifications();
   }, []);
 
   const loadUserData = async () => {
