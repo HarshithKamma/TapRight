@@ -176,7 +176,41 @@ export default function HomeScreen() {
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      let location;
+      try {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      } catch (locError) {
+        // Fallback for web or simulator - use sample location
+        Alert.alert(
+          'Location Unavailable',
+          'Using sample location (Starbucks Downtown) for testing. This feature works on real devices.',
+          [
+            {
+              text: 'Use Sample Location',
+              onPress: async () => {
+                const token = await AsyncStorage.getItem('token');
+                const response = await axios.post(
+                  `${BACKEND_URL}/api/location/check`,
+                  {
+                    latitude: 37.7749,
+                    longitude: -122.4194,
+                    user_id: user?.id,
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
+                handleLocationResponse(response.data);
+              },
+            },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
       const token = await AsyncStorage.getItem('token');
 
       const response = await axios.post(
@@ -191,22 +225,26 @@ export default function HomeScreen() {
         }
       );
 
-      if (response.data.found && response.data.recommendation) {
-        const rec = response.data.recommendation;
-        Alert.alert(
-          `💳 ${rec.merchant_name}`,
-          rec.message,
-          [{ text: 'Got it!' }]
-        );
-      } else if (response.data.throttled) {
-        Alert.alert('Already Notified', 'We recently sent a recommendation for this location.');
-      } else if (response.data.no_cards) {
-        Alert.alert('No Cards', 'Add cards to your wallet to get recommendations.');
-      } else {
-        Alert.alert('No Merchants Nearby', 'No nearby merchants found in our database.');
-      }
+      handleLocationResponse(response.data);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to check location');
+    }
+  };
+
+  const handleLocationResponse = (data: any) => {
+    if (data.found && data.recommendation) {
+      const rec = data.recommendation;
+      Alert.alert(
+        `💳 ${rec.merchant_name}`,
+        rec.message,
+        [{ text: 'Got it!' }]
+      );
+    } else if (data.throttled) {
+      Alert.alert('Already Notified', 'We recently sent a recommendation for this location.');
+    } else if (data.no_cards) {
+      Alert.alert('No Cards', 'Add cards to your wallet to get recommendations.');
+    } else {
+      Alert.alert('No Merchants Nearby', 'No nearby merchants found in our database.');
     }
   };
 
