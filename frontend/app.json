@@ -45,6 +45,20 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TapWise needs your location to recommend the best credit card based on where you are.",
+          "locationWhenInUsePermission": "TapWise needs your location to recommend the best credit card based on where you are."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#667eea"
+        }
       ]
     ],
     "experiments": {
