@@ -269,24 +269,15 @@ export default function HomeScreen() {
         return;
       }
 
-      // Get the Expo Push Token - no projectId needed for Expo Go
-      const tokenData = await Notifications.getExpoPushTokenAsync();
+      console.log('✅ Local notifications enabled');
+      console.log('📍 Background tracking will send notifications when near merchants');
       
-      const token = tokenData.data;
-      setExpoPushToken(token);
-      
-      // Log to console for easy copying
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📱 EXPO PUSH TOKEN:');
-      console.log(token);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔗 Test at: https://expo.dev/notifications');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      // Note: Local notifications don't require Expo Push Token
+      // Remote push notifications are not supported in Expo Go SDK 53+
+      // Our app uses local notifications triggered by location tracking
       
     } catch (error: any) {
-      console.error('Error getting push notifications:', error);
-      console.error('Error details:', error.message);
-      // Don't show alert, just log the error
+      console.error('Error setting up notifications:', error);
     }
   };
 
