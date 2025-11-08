@@ -1,13 +1,19 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "TapWise",
+    "slug": "tapwise",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "tapwise",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "tapwise",
+    "extra": {
+      "eas": {
+        "projectId": "tapwise-credit-card-app"
+      }
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
