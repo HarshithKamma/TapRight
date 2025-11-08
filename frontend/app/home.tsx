@@ -368,8 +368,9 @@ export default function HomeScreen() {
         <View style={styles.infoBox}>
           <Ionicons name="information-circle" size={24} color="#667eea" />
           <Text style={styles.infoText}>
-            TapWise monitors your location in the background and sends notifications when
-            you're near merchants with rewards.
+            {Platform.OS === 'web'
+              ? '📱 For full location tracking, download the Expo Go app and scan the QR code. Web version allows manual location checks only.'
+              : 'TapWise monitors your location in the background and sends notifications when you\'re near merchants with rewards.'}
           </Text>
         </View>
       </ScrollView>
