@@ -250,6 +250,12 @@ export default function HomeScreen() {
 
   const registerForPushNotifications = async () => {
     try {
+      // Skip on web platform
+      if (Platform.OS === 'web') {
+        console.log('Push notifications not available on web');
+        return;
+      }
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -263,21 +269,24 @@ export default function HomeScreen() {
         return;
       }
 
-      // Get the Expo Push Token
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // This will be auto-detected in Expo Go
-      });
+      // Get the Expo Push Token - no projectId needed for Expo Go
+      const tokenData = await Notifications.getExpoPushTokenAsync();
       
       const token = tokenData.data;
       setExpoPushToken(token);
       
       // Log to console for easy copying
-      console.log('📱 EXPO PUSH TOKEN:', token);
-      console.log('🔗 Test notifications at: https://expo.dev/notifications');
-      console.log('Copy this token and paste it into the Expo notification tool');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📱 EXPO PUSH TOKEN:');
+      console.log(token);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔗 Test at: https://expo.dev/notifications');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       
-    } catch (error) {
-      console.error('Error getting push token:', error);
+    } catch (error: any) {
+      console.error('Error getting push notifications:', error);
+      console.error('Error details:', error.message);
+      // Don't show alert, just log the error
     }
   };
 
