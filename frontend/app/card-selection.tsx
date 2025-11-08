@@ -150,9 +150,15 @@ export default function CardSelectionScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
-        <Text style={styles.title}>Select Your Cards</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Manage Your Cards</Text>
         <Text style={styles.subtitle}>
-          Choose the credit cards you own
+          Select or deselect to add/remove cards
         </Text>
         <Text style={styles.badge}>{selectedCards.size} Selected</Text>
       </LinearGradient>
