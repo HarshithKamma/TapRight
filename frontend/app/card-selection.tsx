@@ -216,7 +216,7 @@ export default function CardSelectionScreen() {
           {submitting ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.continueButtonText}>Save Changes</Text>
           )}
         </TouchableOpacity>
       </View>
