@@ -46,56 +46,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Define background location task
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
-  if (error) {
-    console.error('Background location error:', error);
-    return;
-  }
-  if (data) {
-    const { locations } = data;
-    const location = locations[0];
-    
-    if (location) {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const user = await AsyncStorage.getItem('user');
-        
-        if (!token || !user) return;
-        
-        const userData = JSON.parse(user);
-        
-        const response = await axios.post(
-          `${BACKEND_URL}/api/location/check`,
-          {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            user_id: userData.id,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.data.found && response.data.recommendation) {
-          const rec = response.data.recommendation;
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `💳 ${rec.merchant_name}`,
-              body: rec.message,
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.HIGH,
-            },
-            trigger: null,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to check location:', error);
-      }
-    }
-  }
-});
-
 export default function HomeScreen() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
