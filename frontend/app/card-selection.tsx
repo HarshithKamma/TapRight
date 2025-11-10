@@ -51,10 +51,11 @@ export default function CardSelectionScreen() {
       });
       
       // Pre-select user's current cards
-      const userCardIds = new Set(userCardsResponse.data.map((card: any) => card.card_id));
+      const userCardIds = new Set<string>(userCardsResponse.data.map((card: any) => card.card_id as string));
       setSelectedCards(userCardIds);
       setInitialCards(userCardIds);
     } catch (error) {
+      console.error('Failed to load cards:', error);
       Alert.alert('Error', 'Failed to load cards');
     } finally {
       setLoading(false);
@@ -130,7 +131,7 @@ export default function CardSelectionScreen() {
 
   const getRewardsSummary = (rewards: { [key: string]: number }) => {
     const entries = Object.entries(rewards);
-    if (entries.length === 1 && rewards.everything) {
+    if (entries.length === 1 && 'everything' in rewards) {
       return `${rewards.everything}% on Everything`;
     }
     return entries
