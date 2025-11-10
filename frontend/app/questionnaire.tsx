@@ -23,6 +23,7 @@ export default function QuestionnaireScreen() {
   const [monthlyRent, setMonthlyRent] = useState('');
   const [monthlyExpenses, setMonthlyExpenses] = useState('');
   const [cardPayments, setCardPayments] = useState('');
+  const [carPayments, setCarPayments] = useState('');
 
   const handleSkip = () => {
     router.replace('/card-selection');
@@ -37,6 +38,7 @@ export default function QuestionnaireScreen() {
           monthly_rent: monthlyRent ? parseFloat(monthlyRent) : null,
           monthly_expenses: monthlyExpenses ? parseFloat(monthlyExpenses) : null,
           card_payments: cardPayments ? parseFloat(cardPayments) : null,
+          car_payments: carPayments ? parseFloat(carPayments) : null,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -45,6 +47,7 @@ export default function QuestionnaireScreen() {
 
       router.replace('/card-selection');
     } catch (error: any) {
+      console.error('Failed to save questionnaire:', error);
       Alert.alert('Error', 'Failed to save questionnaire');
     }
   };
@@ -94,6 +97,18 @@ export default function QuestionnaireScreen() {
                   placeholderTextColor="#999"
                   value={monthlyExpenses}
                   onChangeText={setMonthlyExpenses}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="car" size={20} color="#667eea" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Monthly Car Payments ($)"
+                  placeholderTextColor="#999"
+                  value={carPayments}
+                  onChangeText={setCarPayments}
                   keyboardType="numeric"
                 />
               </View>

@@ -17,6 +17,7 @@ import axios from 'axios';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const LOCATION_TASK_NAME = 'background-location-task';
@@ -50,15 +51,16 @@ export default function HomeScreen() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [cards, setCards] = useState<UserCard[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
-  const [expoPushToken, setExpoPushToken] = useState<string>('');
 
   useEffect(() => {
     loadUserData();
-    startBackgroundTracking();
+    if (Constants.appOwnership !== 'expo') {
+      startBackgroundTracking();
+    }
     registerForPushNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUserData = async () => {
@@ -80,14 +82,21 @@ export default function HomeScreen() {
 
       setCards(response.data);
     } catch (error) {
+      console.error('Failed to load data:', error);
       Alert.alert('Error', 'Failed to load data');
     } finally {
-      setLoading(false);
+      // Data loaded
     }
   };
 
   const startBackgroundTracking = async () => {
     try {
+      // In Expo Go / simulator, simulate tracking for demo purposes
+      if (Constants.appOwnership === 'expo') {
+        setTrackingEnabled(true);
+        return;
+      }
+
       // Background tracking only works on native platforms
       if (Platform.OS === 'web') {
         Alert.alert(
@@ -172,10 +181,18 @@ export default function HomeScreen() {
 
   const stopBackgroundTracking = async () => {
     try {
-      await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (Constants.appOwnership === 'expo') {
+        setTrackingEnabled(false);
+        return;
+      }
+
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+      if (isRegistered) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      }
       setTrackingEnabled(false);
     } catch (error) {
-      console.error('Failed to stop background tracking:', error);
+      console.warn('Background tracking may not have been running:', error);
     }
   };
 
@@ -200,7 +217,7 @@ export default function HomeScreen() {
         location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-      } catch (locError) {
+      } catch {
         // Fallback for web or simulator - use sample location
         Alert.alert(
           'Location Unavailable',
@@ -221,7 +238,7 @@ export default function HomeScreen() {
                     headers: { Authorization: `Bearer ${token}` },
                   }
                 );
-                handleLocationResponse(response.data);
+                await handleLocationResponse(response.data);
               },
             },
             { text: 'Cancel', style: 'cancel' },
@@ -244,7 +261,7 @@ export default function HomeScreen() {
         }
       );
 
-      handleLocationResponse(response.data);
+      await handleLocationResponse(response.data);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to check location');
     }
@@ -283,9 +300,26 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLocationResponse = (data: any) => {
+  const handleLocationResponse = async (data: any) => {
     if (data.found && data.recommendation) {
       const rec = data.recommendation;
+
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `💳 ${rec.merchant_name}`,
+              body: rec.message,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+        } catch (error) {
+          console.error('Failed to schedule notification:', error);
+        }
+      }
+
       Alert.alert(
         `💳 ${rec.merchant_name}`,
         rec.message,
@@ -314,7 +348,7 @@ export default function HomeScreen() {
 
   const getRewardsSummary = (rewards: { [key: string]: number }) => {
     const entries = Object.entries(rewards);
-    if (entries.length === 1 && rewards.everything) {
+    if (entries.length === 1 && 'everything' in rewards) {
       return `${rewards.everything}% on Everything`;
     }
     return entries

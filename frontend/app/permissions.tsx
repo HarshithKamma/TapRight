@@ -34,6 +34,7 @@ export default function PermissionsScreen() {
 
       setLocationGranted(true);
     } catch (error) {
+      console.error('Failed to request location permission:', error);
       Alert.alert('Error', 'Failed to request location permission');
     }
   };
@@ -52,6 +53,7 @@ export default function PermissionsScreen() {
 
       setNotificationGranted(true);
     } catch (error) {
+      console.error('Failed to request notification permission:', error);
       Alert.alert('Error', 'Failed to request notification permission');
     }
   };
