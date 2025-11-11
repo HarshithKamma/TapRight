@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,12 +19,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceSoft: '#1d2539',
+  surfaceHighlight: '#1f2a44',
+  accent: '#3b82f6',
+  accentMuted: '#60a5fa',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  placeholder: '#64748b',
+  border: '#1f2a44',
+};
+
 export default function QuestionnaireScreen() {
   const router = useRouter();
   const [monthlyRent, setMonthlyRent] = useState('');
   const [monthlyExpenses, setMonthlyExpenses] = useState('');
   const [cardPayments, setCardPayments] = useState('');
   const [carPayments, setCarPayments] = useState('');
+  const logoSource = require('../assets/images/tapright-logo.png');
 
   const handleSkip = () => {
     router.replace('/card-selection');
@@ -57,73 +72,85 @@ export default function QuestionnaireScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
-            <Ionicons name="help-circle" size={60} color="white" />
-            <Text style={styles.title}>Quick Questions</Text>
-            <Text style={styles.subtitle}>Help us understand your spending (optional)</Text>
-
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Ionicons name="home" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Monthly Rent ($)"
-                  placeholderTextColor="#999"
-                  value={monthlyRent}
-                  onChangeText={setMonthlyRent}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons name="card" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Monthly Card Payments ($)"
-                  placeholderTextColor="#999"
-                  value={cardPayments}
-                  onChangeText={setCardPayments}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons name="cash" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Other Monthly Expenses ($)"
-                  placeholderTextColor="#999"
-                  value={monthlyExpenses}
-                  onChangeText={setMonthlyExpenses}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons name="car" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Monthly Car Payments ($)"
-                  placeholderTextColor="#999"
-                  value={carPayments}
-                  onChangeText={setCarPayments}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>Continue</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                <Text style={styles.skipButtonText}>Skip for Now</Text>
-              </TouchableOpacity>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <View style={styles.iconWrap}>
+            <Image
+              source={logoSource}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
           </View>
-        </ScrollView>
-      </LinearGradient>
+          <Text style={styles.title}>Quick Questions</Text>
+          <Text style={styles.subtitle}>Help us understand your spending (optional)</Text>
+
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="home" size={20} color={COLORS.textSecondary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Monthly Rent ($)"
+                placeholderTextColor={COLORS.placeholder}
+                value={monthlyRent}
+                onChangeText={setMonthlyRent}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="card" size={20} color={COLORS.textSecondary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Monthly Card Payments ($)"
+                placeholderTextColor={COLORS.placeholder}
+                value={cardPayments}
+                onChangeText={setCardPayments}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="cash" size={20} color={COLORS.textSecondary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Other Monthly Expenses ($)"
+                placeholderTextColor={COLORS.placeholder}
+                value={monthlyExpenses}
+                onChangeText={setMonthlyExpenses}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrap}>
+                <Ionicons name="car" size={20} color={COLORS.textSecondary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Monthly Car Payments ($)"
+                placeholderTextColor={COLORS.placeholder}
+                value={carPayments}
+                onChangeText={setCarPayments}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+              <Text style={styles.skipButtonText}>Skip for Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -131,9 +158,7 @@ export default function QuestionnaireScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -144,32 +169,45 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingBottom: 24,
     alignItems: 'center',
+    gap: 20,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 24,
+    color: COLORS.textPrimary,
+    marginTop: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
   form: {
     width: '100%',
-    marginTop: 40,
+    marginTop: 28,
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: 28,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 56,
+    height: 58,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   inputIcon: {
     marginRight: 12,
@@ -177,28 +215,61 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   submitButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    borderRadius: 20,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 12,
+    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   submitButtonText: {
-    color: '#667eea',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   skipButton: {
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
   skipButtonText: {
-    color: 'white',
+    color: COLORS.textSecondary,
     fontSize: 16,
-    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  iconWrap: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceSoft,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.25)',
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  inputIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceHighlight,
+    marginRight: 12,
+  },
+  iconImage: {
+    width: 88,
+    height: 88,
   },
 });

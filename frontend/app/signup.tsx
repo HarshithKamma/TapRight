@@ -12,24 +12,131 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
+type FormFields = {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+};
+
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceSoft: '#1d2539',
+  surfaceHighlight: '#1f2a44',
+  accent: '#3b82f6',
+  accentSoft: '#60a5fa',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  placeholder: '#64748b',
+  border: '#1f2a44',
+};
+
 export default function SignupScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const formValuesRef = React.useRef<FormFields>({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+  });
+  const [isFormReady, setIsFormReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const updateFormValue = (field: keyof FormFields) => (value: string) => {
+    formValuesRef.current[field] = value;
+    const hasAllValues = Object.values(formValuesRef.current).every(
+      (entry) => entry.trim().length > 0
+    );
+    setIsFormReady((prev) => (prev === hasAllValues ? prev : hasAllValues));
+  };
+
+  const promptUser = (title: string, message: string) => {
+    return new Promise<boolean>((resolve) => {
+      Alert.alert(title, message, [
+        {
+          text: 'Not now',
+          style: 'cancel',
+          onPress: () => resolve(false),
+        },
+        {
+          text: 'Allow',
+          onPress: () => resolve(true),
+        },
+      ]);
+    });
+  };
+
+  const requestNotificationPermission = async () => {
+    try {
+      const shouldRequest = await promptUser(
+        'Stay in the loop?',
+        'Would you like us to send you notifications for card recommendations?'
+      );
+
+      if (!shouldRequest) {
+        return;
+      }
+
+      await Notifications.requestPermissionsAsync();
+    } catch (err) {
+      console.warn('Notification permission prompt failed', err);
+    }
+  };
+
+  const requestLocationPermission = async () => {
+    try {
+      const shouldRequest = await promptUser(
+        'Share your location?',
+        'Allow TapRight to access your location even in the background so we can send timely recommendations.'
+      );
+
+      if (!shouldRequest) {
+        return;
+      }
+
+      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+
+      if (foregroundStatus !== 'granted') {
+        Alert.alert(
+          'Location Needed',
+          'We need location permission to suggest the best card based on where you are.'
+        );
+        return;
+      }
+
+      if (Constants.appOwnership !== 'expo') {
+        const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+
+        if (backgroundStatus !== 'granted') {
+          Alert.alert(
+            'Background Location',
+            'Background access lets us notify you even when the app is closed.'
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('Location permission prompt failed', err);
+    }
+  };
+
   const handleSignup = async () => {
-    if (!name || !email || !phone || !password) {
+    const { name, email, phone, password } = formValuesRef.current;
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedPhone || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -42,15 +149,18 @@ export default function SignupScreen() {
     setLoading(true);
     try {
       const response = await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-        name,
-        email,
-        phone,
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
         password,
       });
 
       const { token, user } = response.data;
       await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('user', JSON.stringify(user));
+
+      await requestNotificationPermission();
+      await requestLocationPermission();
 
       router.replace('/questionnaire');
     } catch (error: any) {
@@ -65,96 +175,99 @@ export default function SignupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
 
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Sign up to get started</Text>
 
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Ionicons name="person" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor="#999"
-                  value={name}
-                  onChangeText={setName}
-                />
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="person" size={20} color={COLORS.textSecondary} />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                placeholderTextColor={COLORS.placeholder}
+                onChangeText={updateFormValue('name')}
+                autoCapitalize="words"
+              />
+            </View>
 
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#999"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
+            <View style={styles.inputContainer}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="mail" size={20} color={COLORS.textSecondary} />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={COLORS.placeholder}
+                onChangeText={updateFormValue('email')}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
 
-              <View style={styles.inputContainer}>
-                <Ionicons name="call" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone Number"
-                  placeholderTextColor="#999"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                />
+            <View style={styles.inputContainer}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="call" size={20} color={COLORS.textSecondary} />
               </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Phone Number"
+                placeholderTextColor={COLORS.placeholder}
+                onChangeText={updateFormValue('phone')}
+                keyboardType="phone-pad"
+              />
+            </View>
 
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed" size={20} color="#667eea" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#999"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color="#999"
-                  />
-                </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="lock-closed" size={20} color={COLORS.textSecondary} />
               </View>
-
-              <TouchableOpacity
-                style={styles.signupButton}
-                onPress={handleSignup}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#667eea" />
-                ) : (
-                  <Text style={styles.signupButtonText}>Sign Up</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => router.push('/login')}>
-                <Text style={styles.loginText}>
-                  Already have an account? <Text style={styles.loginLink}>Login</Text>
-                </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={COLORS.placeholder}
+                onChangeText={updateFormValue('password')}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.iconBadge}>
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={18}
+                  color={COLORS.textSecondary}
+                />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={[styles.signupButton, (!isFormReady || loading) && styles.signupButtonDisabled]}
+              onPress={handleSignup}
+              disabled={loading || !isFormReady}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.textPrimary} />
+              ) : (
+                <Text style={styles.signupButtonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/login')} style={styles.loginLinkWrapper}>
+              <Text style={styles.loginText}>
+                Already have an account? <Text style={styles.loginLink}>Login</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </LinearGradient>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -162,9 +275,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -174,35 +285,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
+    gap: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceSoft,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 24,
+    color: COLORS.textPrimary,
+    marginTop: 12,
   },
   subtitle: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 8,
+    color: COLORS.textSecondary,
+    marginTop: 6,
   },
   form: {
-    marginTop: 32,
+    marginTop: 28,
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 16,
+    shadowColor: COLORS.border,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 56,
+    height: 58,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   inputIcon: {
     marginRight: 12,
@@ -210,28 +336,48 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   signupButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    borderRadius: 20,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 8,
+    shadowColor: COLORS.border,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  signupButtonDisabled: {
+    backgroundColor: COLORS.surfaceHighlight,
+    shadowOpacity: 0,
   },
   signupButtonText: {
-    color: '#667eea',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   loginText: {
-    color: 'white',
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 24,
     fontSize: 16,
   },
   loginLink: {
     fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    color: COLORS.textPrimary,
+  },
+  loginLinkWrapper: {
+    marginTop: 8,
+  },
+  iconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceHighlight,
+    marginRight: 12,
   },
 });

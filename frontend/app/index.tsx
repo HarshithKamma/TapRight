@@ -1,42 +1,61 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceSoft: '#1d2539',
+  surfaceHighlight: '#1f2a44',
+  accent: '#3b82f6',
+  accentMuted: '#60a5fa',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  border: '#1f2a44',
+};
 
 export default function SplashScreen() {
   const router = useRouter();
 
+  const logoSource = require('../assets/images/tapright-logo.png');
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.gradient}
-      >
-        {/* Logo/Icon */}
+      <View style={styles.gradient}>
         <View style={styles.logoContainer}>
-          <Ionicons name="card" size={80} color="white" />
-          <Text style={styles.logoText}>TapWise</Text>
+          <View style={styles.logoBadge}>
+            <Image
+              source={logoSource}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={styles.logoText}>TapRight</Text>
           <Text style={styles.tagline}>Smart Credit Card Assistant</Text>
         </View>
 
-        {/* Features */}
         <View style={styles.featuresContainer}>
           <View style={styles.featureItem}>
-            <Ionicons name="location" size={32} color="white" />
+            <View style={styles.featureIcon}>
+              <Ionicons name="location" size={24} color={COLORS.textPrimary} />
+            </View>
             <Text style={styles.featureText}>Location-Based</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="notifications" size={32} color="white" />
+            <View style={styles.featureIcon}>
+              <Ionicons name="notifications" size={24} color={COLORS.textPrimary} />
+            </View>
             <Text style={styles.featureText}>Smart Alerts</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="trending-up" size={32} color="white" />
+            <View style={styles.featureIcon}>
+              <Ionicons name="trending-up" size={24} color={COLORS.textPrimary} />
+            </View>
             <Text style={styles.featureText}>Max Rewards</Text>
           </View>
         </View>
 
-        {/* CTA Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -52,7 +71,7 @@ export default function SplashScreen() {
             <Text style={styles.secondaryButtonText}>I Have an Account</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -60,68 +79,119 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   gradient: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingVertical: 64,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: 36,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.45)',
+    shadowOpacity: 0.45,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 18,
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 24,
+    gap: 12,
   },
   logoText: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 16,
+    color: COLORS.textPrimary,
   },
   tagline: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 8,
+    color: COLORS.textSecondary,
   },
   featuresContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   featureItem: {
     alignItems: 'center',
+    gap: 8,
   },
   featureText: {
-    color: 'white',
-    marginTop: 8,
+    color: COLORS.textSecondary,
     fontSize: 14,
+    fontWeight: '600',
   },
   buttonContainer: {
     width: '100%',
-    gap: 16,
+    gap: 14,
   },
   primaryButton: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.accent,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     alignItems: 'center',
+    shadowColor: 'rgba(8, 15, 35, 0.4)',
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
   primaryButtonText: {
-    color: '#667eea',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   secondaryButton: {
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: COLORS.textSecondary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 24,
     alignItems: 'center',
+    backgroundColor: COLORS.surfaceSoft,
   },
   secondaryButtonText: {
-    color: 'white',
+    color: COLORS.textSecondary,
     fontSize: 18,
     fontWeight: '600',
+  },
+  logoBadge: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceSoft,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.3)',
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  featureIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceHighlight,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.25)',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  logoImage: {
+    width: 88,
+    height: 88,
   },
 });
