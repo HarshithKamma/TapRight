@@ -9,12 +9,24 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceSoft: '#1d2539',
+  surfaceHighlight: '#1f2a44',
+  accent: '#3b82f6',
+  accentMuted: '#60a5fa',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  border: '#1f2a44',
+  success: '#22c55e',
+};
 
 interface CreditCard {
   id: string;
@@ -121,7 +133,7 @@ export default function CardSelectionScreen() {
       }
 
       Alert.alert('Success', 'Wallet updated successfully!');
-      router.back();
+      router.replace('/home');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Failed to save cards');
     } finally {
@@ -150,19 +162,19 @@ export default function CardSelectionScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Manage Your Cards</Text>
         <Text style={styles.subtitle}>
           Select or deselect to add/remove cards
         </Text>
         <Text style={styles.badge}>{selectedCards.size} Selected</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView style={styles.cardList} contentContainerStyle={styles.cardListContent}>
         {cards.map((card) => {
@@ -193,11 +205,10 @@ export default function CardSelectionScreen() {
                 )}
               </View>
               <View style={styles.checkboxContainer}>
-                {isSelected && (
-                  <Ionicons name="checkmark-circle" size={32} color="#667eea" />
-                )}
-                {!isSelected && (
-                  <Ionicons name="ellipse-outline" size={32} color="#ccc" />
+                {isSelected ? (
+                  <Ionicons name="checkmark-circle" size={32} color={COLORS.accent} />
+                ) : (
+                  <Ionicons name="ellipse-outline" size={32} color={COLORS.textSecondary} />
                 )}
               </View>
             </TouchableOpacity>
@@ -215,7 +226,7 @@ export default function CardSelectionScreen() {
           disabled={submitting || selectedCards.size === 0}
         >
           {submitting ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={COLORS.textPrimary} />
           ) : (
             <Text style={styles.continueButtonText}>Save Changes</Text>
           )}
@@ -228,7 +239,7 @@ export default function CardSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
@@ -239,56 +250,74 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 32,
     paddingHorizontal: 24,
+    backgroundColor: COLORS.surface,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: 'rgba(8, 15, 35, 0.4)',
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceSoft,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
+    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: COLORS.textSecondary,
     marginTop: 8,
   },
   badge: {
     fontSize: 14,
-    color: 'white',
-    marginTop: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
+    color: COLORS.textSecondary,
+    marginTop: 16,
+    backgroundColor: COLORS.surfaceSoft,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 16,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   cardList: {
     flex: 1,
   },
   cardListContent: {
-    padding: 16,
+    padding: 20,
   },
   cardItem: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.32)',
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   cardItemSelected: {
-    borderColor: '#667eea',
+    borderColor: COLORS.accent,
+    shadowOpacity: 0.5,
   },
   cardColorIndicator: {
-    width: 6,
-    borderRadius: 3,
-    marginRight: 12,
+    width: 8,
+    borderRadius: 4,
+    marginRight: 14,
   },
   cardInfo: {
     flex: 1,
@@ -296,22 +325,22 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   cardIssuer: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   cardRewards: {
     fontSize: 14,
-    color: '#667eea',
-    marginTop: 8,
+    color: COLORS.accentMuted,
+    marginTop: 10,
     fontWeight: '600',
   },
   cardFee: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   checkboxContainer: {
@@ -319,22 +348,28 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   footer: {
-    padding: 16,
-    backgroundColor: 'white',
+    padding: 20,
+    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: COLORS.border,
   },
   continueButton: {
-    backgroundColor: '#667eea',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: COLORS.accent,
+    borderRadius: 24,
+    paddingVertical: 18,
     alignItems: 'center',
+    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
   continueButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: COLORS.surfaceHighlight,
+    shadowOpacity: 0,
   },
   continueButtonText: {
-    color: 'white',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },

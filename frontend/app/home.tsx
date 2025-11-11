@@ -10,7 +10,6 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -164,12 +163,12 @@ export default function HomeScreen() {
           timeInterval: 120000, // 2 minutes
           distanceInterval: 100, // 100 meters
           foregroundService: {
-            notificationTitle: 'TapWise Active',
+            notificationTitle: 'TapRight Active',
             notificationBody: 'Finding best card recommendations for you',
           },
         });
         setTrackingEnabled(true);
-        Alert.alert('Tracking Started', 'TapWise is now monitoring your location for nearby merchants.');
+        Alert.alert('Tracking Started', 'TapRight is now monitoring your location for nearby merchants.');
       } else {
         Alert.alert('Permission Required', 'Background location permission is required for automatic tracking.');
       }
@@ -358,7 +357,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.greeting}>Hello,</Text>
@@ -385,7 +384,7 @@ export default function HomeScreen() {
             Tracking: {trackingEnabled ? 'ON' : 'OFF'}
           </Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -449,7 +448,7 @@ export default function HomeScreen() {
           <Text style={styles.infoText}>
             {Platform.OS === 'web'
               ? '📱 For full location tracking, download the Expo Go app and scan the QR code. Web version allows manual location checks only.'
-              : 'TapWise monitors your location in the background and sends local notifications when you\'re near merchants with rewards. Enable tracking above to start receiving recommendations!'}
+              : 'TapRight monitors your location in the background and sends local notifications when you\'re near merchants with rewards. Enable tracking above to start receiving recommendations!'}
           </Text>
         </View>
       </ScrollView>
@@ -457,15 +456,38 @@ export default function HomeScreen() {
   );
 }
 
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceMuted: '#1e293b',
+  surfaceLight: '#20304d',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  accent: '#3b82f6',
+  accentMuted: '#60a5fa',
+  success: '#22c55e',
+  warning: '#facc15',
+  border: '#1f2a44',
+  shadow: 'rgba(8, 15, 35, 0.35)',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   header: {
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
+    backgroundColor: COLORS.surface,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 16,
   },
   headerTop: {
     flexDirection: 'row',
@@ -479,53 +501,75 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: COLORS.textPrimary,
     marginTop: 4,
   },
   logoutButton: {
-    padding: 8,
+    padding: 10,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceLight,
   },
   trackingButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: COLORS.surfaceLight,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 24,
     marginTop: 16,
     alignSelf: 'flex-start',
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   trackingButtonActive: {
-    backgroundColor: 'rgba(74, 222, 128, 0.3)',
+    backgroundColor: COLORS.success,
+    shadowOpacity: 0.45,
   },
   trackingButtonText: {
-    color: 'white',
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
   },
   content: {
     flex: 1,
+    paddingHorizontal: 16,
   },
   checkButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#667eea',
-    marginHorizontal: 16,
-    marginTop: 16,
+    backgroundColor: COLORS.accent,
+    marginTop: 20,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 18,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
   },
   checkButtonText: {
-    color: 'white',
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
   },
   section: {
-    marginTop: 24,
-    paddingHorizontal: 16,
+    marginTop: 28,
+    padding: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -536,59 +580,71 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  sectionBadge: {
-    fontSize: 14,
-    color: '#667eea',
-    fontWeight: '600',
+    color: COLORS.textPrimary,
   },
   manageCardsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e0e7ff',
-    paddingHorizontal: 12,
+    backgroundColor: COLORS.surfaceLight,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
+    borderRadius: 16,
+    gap: 6,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   manageCardsText: {
     fontSize: 14,
-    color: '#667eea',
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 36,
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#999',
+    color: COLORS.textSecondary,
     marginTop: 12,
   },
   addButton: {
-    backgroundColor: '#667eea',
-    paddingHorizontal: 24,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 28,
     paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
+    borderRadius: 50,
+    marginTop: 18,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 9,
   },
   addButtonText: {
-    color: 'white',
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   cardItem: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   cardColorBar: {
-    width: 6,
-    borderRadius: 3,
-    marginRight: 12,
+    width: 8,
+    borderRadius: 4,
+    marginRight: 14,
   },
   cardDetails: {
     flex: 1,
@@ -596,43 +652,53 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   cardIssuer: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   cardRewards: {
     fontSize: 14,
-    color: '#667eea',
-    marginTop: 6,
+    color: COLORS.accentMuted,
+    marginTop: 8,
     fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#e0e7ff',
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 24,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    marginTop: 28,
+    marginBottom: 28,
+    padding: 20,
+    borderRadius: 24,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   infoText: {
     flex: 1,
-    marginLeft: 12,
     fontSize: 14,
-    color: '#4338ca',
-    lineHeight: 20,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
   },
   tokenBox: {
-    backgroundColor: '#f0f9ff',
-    marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    marginBottom: 28,
+    padding: 20,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: COLORS.border,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   tokenHeader: {
     flexDirection: 'row',
@@ -642,32 +708,32 @@ const styles = StyleSheet.create({
   tokenTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#667eea',
+    color: COLORS.accentMuted,
     marginLeft: 8,
   },
   tokenLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   tokenContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: COLORS.surfaceLight,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.border,
   },
   tokenText: {
     flex: 1,
     fontSize: 12,
-    color: '#1e293b',
+    color: COLORS.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   tokenHint: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: COLORS.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },

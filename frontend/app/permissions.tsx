@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+
+const COLORS = {
+  background: '#0f172a',
+  surface: '#131c2f',
+  surfaceSoft: '#1d2539',
+  surfaceHighlight: '#1f2a44',
+  accent: '#3b82f6',
+  accentMuted: '#60a5fa',
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5f5',
+  border: '#1f2a44',
+  success: '#22c55e',
+};
 
 export default function PermissionsScreen() {
   const router = useRouter();
@@ -18,7 +30,7 @@ export default function PermissionsScreen() {
       if (foregroundStatus !== 'granted') {
         Alert.alert(
           'Permission Required',
-          'Location permission is required for TapWise to work properly.'
+          'Location permission is required for TapRight to work properly.'
         );
         return;
       }
@@ -72,75 +84,79 @@ export default function PermissionsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
-        <View style={styles.content}>
-          <Ionicons name="shield-checkmark" size={80} color="white" />
-          <Text style={styles.title}>Permissions Required</Text>
-          <Text style={styles.subtitle}>
-            TapWise needs these permissions to provide smart recommendations
-          </Text>
+      <View style={styles.gradient}>
+        <View style={styles.iconWrap}>
+          <Ionicons name="shield-checkmark" size={64} color={COLORS.accentMuted} />
+        </View>
+        <Text style={styles.title}>Permissions Required</Text>
+        <Text style={styles.subtitle}>
+          TapRight needs these permissions to provide smart recommendations
+        </Text>
 
-          <View style={styles.permissionsList}>
-            <TouchableOpacity
-              style={[
-                styles.permissionItem,
-                locationGranted && styles.permissionItemGranted,
-              ]}
-              onPress={requestLocationPermission}
-            >
+        <View style={styles.permissionsList}>
+          <TouchableOpacity
+            style={[
+              styles.permissionItem,
+              locationGranted && styles.permissionItemGranted,
+            ]}
+            onPress={requestLocationPermission}
+          >
+            <View style={styles.permissionIconBadge}>
               <Ionicons
                 name={locationGranted ? 'checkmark-circle' : 'location'}
-                size={40}
-                color={locationGranted ? '#4ade80' : 'white'}
+                size={32}
+                color={locationGranted ? COLORS.success : COLORS.textSecondary}
               />
-              <View style={styles.permissionInfo}>
-                <Text style={styles.permissionTitle}>Location Access</Text>
-                <Text style={styles.permissionDescription}>
-                  Detect merchants near you
-                </Text>
-              </View>
-              {!locationGranted && (
-                <Ionicons name="chevron-forward" size={24} color="white" />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.permissionItem,
-                notificationGranted && styles.permissionItemGranted,
-              ]}
-              onPress={requestNotificationPermission}
-            >
-              <Ionicons
-                name={notificationGranted ? 'checkmark-circle' : 'notifications'}
-                size={40}
-                color={notificationGranted ? '#4ade80' : 'white'}
-              />
-              <View style={styles.permissionInfo}>
-                <Text style={styles.permissionTitle}>Notifications</Text>
-                <Text style={styles.permissionDescription}>
-                  Receive card recommendations
-                </Text>
-              </View>
-              {!notificationGranted && (
-                <Ionicons name="chevron-forward" size={24} color="white" />
-              )}
-            </TouchableOpacity>
-          </View>
+            </View>
+            <View style={styles.permissionInfo}>
+              <Text style={styles.permissionTitle}>Location Access</Text>
+              <Text style={styles.permissionDescription}>
+                Detect merchants near you
+              </Text>
+            </View>
+            {!locationGranted && (
+              <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
+            )}
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              styles.continueButton,
-              (!locationGranted || !notificationGranted) &&
-                styles.continueButtonDisabled,
+              styles.permissionItem,
+              notificationGranted && styles.permissionItemGranted,
             ]}
-            onPress={handleContinue}
-            disabled={!locationGranted || !notificationGranted}
+            onPress={requestNotificationPermission}
           >
-            <Text style={styles.continueButtonText}>Continue to Home</Text>
+            <View style={styles.permissionIconBadge}>
+              <Ionicons
+                name={notificationGranted ? 'checkmark-circle' : 'notifications'}
+                size={32}
+                color={notificationGranted ? COLORS.success : COLORS.textSecondary}
+              />
+            </View>
+            <View style={styles.permissionInfo}>
+              <Text style={styles.permissionTitle}>Notifications</Text>
+              <Text style={styles.permissionDescription}>
+                Receive card recommendations
+              </Text>
+            </View>
+            {!notificationGranted && (
+              <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
+            )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            (!locationGranted || !notificationGranted) &&
+              styles.continueButtonDisabled,
+          ]}
+          onPress={handleContinue}
+          disabled={!locationGranted || !notificationGranted}
+        >
+          <Text style={styles.continueButtonText}>Continue to Home</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -148,46 +164,66 @@ export default function PermissionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   gradient: {
-    flex: 1,
-  },
-  content: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 80,
     paddingBottom: 40,
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderRadius: 32,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.45)',
+    shadowOpacity: 0.45,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 18,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 24,
+    color: COLORS.textPrimary,
+    marginTop: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: COLORS.textSecondary,
     marginTop: 12,
     textAlign: 'center',
     lineHeight: 24,
   },
   permissionsList: {
     width: '100%',
-    marginTop: 40,
+    marginTop: 36,
+    gap: 16,
   },
   permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 22,
     padding: 20,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
   },
   permissionItemGranted: {
-    backgroundColor: 'rgba(74, 222, 128, 0.2)',
+    borderColor: COLORS.success,
+    shadowOpacity: 0.45,
   },
   permissionInfo: {
     flex: 1,
@@ -196,26 +232,57 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: COLORS.textPrimary,
   },
   permissionDescription: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.textSecondary,
     marginTop: 4,
   },
   continueButton: {
     width: '100%',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    borderRadius: 24,
     paddingVertical: 16,
     alignItems: 'center',
+    marginTop: 12,
+    shadowColor: 'rgba(8, 15, 35, 0.4)',
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
   continueButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: COLORS.surfaceHighlight,
+    shadowOpacity: 0,
   },
   continueButtonText: {
-    color: '#667eea',
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  iconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceSoft,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
+  },
+  permissionIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceHighlight,
+    marginRight: 16,
   },
 });
