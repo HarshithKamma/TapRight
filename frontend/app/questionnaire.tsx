@@ -16,21 +16,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { COLORS } from '../constants/Colors';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const COLORS = {
-  background: '#0f172a',
-  surface: '#131c2f',
-  surfaceSoft: '#1d2539',
-  surfaceHighlight: '#1f2a44',
-  accent: '#3b82f6',
-  accentMuted: '#60a5fa',
-  textPrimary: '#f8fafc',
-  textSecondary: '#cbd5f5',
-  placeholder: '#64748b',
-  border: '#1f2a44',
-};
+
 
 export default function QuestionnaireScreen() {
   const router = useRouter();
@@ -198,7 +188,7 @@ const styles = StyleSheet.create({
     gap: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
@@ -228,7 +218,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -258,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.25)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.3,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },

@@ -4,19 +4,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import { COLORS } from '../constants/Colors';
 
-const COLORS = {
-  background: '#0f172a',
-  surface: '#131c2f',
-  surfaceSoft: '#1d2539',
-  surfaceHighlight: '#1f2a44',
-  accent: '#3b82f6',
-  accentMuted: '#60a5fa',
-  textPrimary: '#f8fafc',
-  textSecondary: '#cbd5f5',
-  border: '#1f2a44',
-  success: '#22c55e',
-};
+
 
 export default function PermissionsScreen() {
   const router = useRouter();
@@ -26,7 +16,7 @@ export default function PermissionsScreen() {
   const requestLocationPermission = async () => {
     try {
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (foregroundStatus !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -36,7 +26,7 @@ export default function PermissionsScreen() {
       }
 
       const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-      
+
       if (backgroundStatus !== 'granted') {
         Alert.alert(
           'Background Permission',
@@ -54,7 +44,7 @@ export default function PermissionsScreen() {
   const requestNotificationPermission = async () => {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -149,7 +139,7 @@ export default function PermissionsScreen() {
           style={[
             styles.continueButton,
             (!locationGranted || !notificationGranted) &&
-              styles.continueButtonDisabled,
+            styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
           disabled={!locationGranted || !notificationGranted}
@@ -178,7 +168,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.45)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 28,
     shadowOffset: { width: 0, height: 14 },
@@ -215,7 +205,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.35,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -246,7 +236,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: 'rgba(8, 15, 35, 0.4)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
@@ -270,7 +260,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
