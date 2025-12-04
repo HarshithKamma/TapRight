@@ -18,6 +18,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { COLORS } from '../constants/Colors';
+import { identifyMerchant } from '../lib/mapbox';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -52,6 +53,8 @@ export default function HomeScreen() {
   const [cards, setCards] = useState<UserCard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
+  const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
+  const lastNotificationTime = React.useRef<number>(0);
 
   useEffect(() => {
     loadUserData();
@@ -61,6 +64,10 @@ export default function HomeScreen() {
     registerForPushNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ... (existing code) ...
+
+
 
   const loadUserData = async () => {
     try {
@@ -126,21 +133,62 @@ export default function HomeScreen() {
     return R * c;
   };
 
+  // Log visit to history
+  const logVisit = async (userId: string, merchant: any) => {
+    try {
+      // 1. Check for recent visit (last 1 hour) to avoid spam
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recentVisits } = await supabase
+        .from('location_history')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('merchant_name', merchant.name)
+        .gte('visited_at', oneHourAgo)
+        .limit(1);
+
+      if (recentVisits && recentVisits.length > 0) {
+        console.log('Skipping log: Recently visited', merchant.name);
+        return;
+      }
+
+      // 2. Insert new visit
+      const { error } = await supabase
+        .from('location_history')
+        .insert({
+          user_id: userId,
+          merchant_name: merchant.name,
+          category: merchant.category,
+          latitude: merchant.latitude,
+          longitude: merchant.longitude,
+        });
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+      } else {
+        console.log('✅ Visit logged:', merchant.name);
+      }
+    } catch (error) {
+      console.error('Failed to log visit:', error);
+    }
+  };
+
   // Logic to check location and get recommendation
   const checkLocation = async (latitude: number, longitude: number, userId: string) => {
-    // 1. Fetch merchants
-    const { data: merchants } = await supabase.from('merchants').select('*');
-    if (!merchants) return null;
+    // 1. Identify Merchant via Mapbox (Dynamic)
+    const mapboxMerchant = await identifyMerchant(latitude, longitude);
 
-    // 2. Find nearby merchant
-    const nearbyMerchant = merchants.find(m => {
-      const dist = calculateDistance(latitude, longitude, m.latitude, m.longitude);
-      return dist <= (m.radius || 150);
-    });
+    if (mapboxMerchant) {
+      // Log the visit
+      logVisit(userId, mapboxMerchant);
 
-    if (!nearbyMerchant) return { found: false };
+      // Find best card for this dynamic merchant
+      return await findBestCardForMerchant(userId, mapboxMerchant);
+    }
 
-    // 3. Fetch user cards to find best one
+    return { found: false };
+  };
+
+  const findBestCardForMerchant = async (userId: string, merchant: any) => {
     const { data: userCards } = await supabase
       .from('user_cards')
       .select(`
@@ -156,7 +204,7 @@ export default function HomeScreen() {
         found: true,
         no_cards: true,
         recommendation: {
-          merchant_name: nearbyMerchant.name,
+          merchant_name: merchant.name,
           message: "Add cards to get rewards!"
         }
       };
@@ -165,7 +213,7 @@ export default function HomeScreen() {
     // 4. Find best card
     let bestCard: any = null;
     let maxRate = 0;
-    const category = nearbyMerchant.category.toLowerCase();
+    const category = (merchant.category || 'general').toLowerCase();
 
     userCards.forEach((item: any) => {
       const card = item.credit_cards;
@@ -183,13 +231,13 @@ export default function HomeScreen() {
       return {
         found: true,
         recommendation: {
-          merchant_name: nearbyMerchant.name,
+          merchant_name: merchant.name,
           message: `Use ${bestCard.name} for ${maxRate}% back!`
         }
       };
     }
 
-    return { found: true, recommendation: { merchant_name: nearbyMerchant.name, message: "Use your preferred card." } };
+    return { found: true, recommendation: { merchant_name: merchant.name, message: "Use your preferred card." } };
   };
 
   // Define background task
@@ -209,7 +257,7 @@ export default function HomeScreen() {
 
           const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
 
-          if (result?.found && result.recommendation && !result.no_cards) {
+          if (result?.found && 'recommendation' in result && !('no_cards' in result)) {
             await Notifications.scheduleNotificationAsync({
               content: {
                 title: `💳 ${result.recommendation.merchant_name}`,
@@ -229,58 +277,83 @@ export default function HomeScreen() {
 
   const startBackgroundTracking = async () => {
     try {
-      // In Expo Go / simulator, simulate tracking for demo purposes
-      if (Constants.appOwnership === 'expo') {
-        setTrackingEnabled(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required for tracking.');
         return;
       }
 
-      // Background tracking only works on native platforms
-      if (Platform.OS === 'web') {
-        Alert.alert(
-          'Background Tracking Unavailable',
-          'Background location tracking requires a native mobile device (iOS/Android). Use "Check Current Location" button to test the recommendation feature on web.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
+      // 1. Start Foreground Tracking (Automatic while app is open)
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 10000, // Check every 10 seconds
+          distanceInterval: 50, // Or every 50 meters
+        },
+        async (location) => {
+          console.log('📍 New location update:', location.coords);
 
-      const { status } = await Location.getBackgroundPermissionsAsync();
-      if (status === 'granted') {
+          // Debounce: Ignore updates if less than 5 seconds since last notification
+          const now = Date.now();
+          if (now - lastNotificationTime.current < 5000) {
+            console.log('Skipping update: Debounced');
+            return;
+          }
+
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
+
+            // Only update timestamp if we actually found something and notified
+            if (result?.found) {
+              lastNotificationTime.current = now;
+              await handleLocationResponse(result);
+            }
+          }
+        }
+      );
+      setLocationSubscription(subscription);
+
+      // 2. Start Background Tracking (For when app is closed)
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus === 'granted') {
         await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
           accuracy: Location.Accuracy.Balanced,
-          timeInterval: 120000, // 2 minutes
+          timeInterval: 60000, // 1 minute
           distanceInterval: 100, // 100 meters
           foregroundService: {
             notificationTitle: 'TapRight Active',
             notificationBody: 'Finding best card recommendations for you',
           },
         });
-        setTrackingEnabled(true);
-        Alert.alert('Tracking Started', 'TapRight is now monitoring your location for nearby merchants.');
-      } else {
-        Alert.alert('Permission Required', 'Background location permission is required for automatic tracking.');
       }
-    } catch (error) {
-      console.error('Failed to start background tracking:', error);
-      Alert.alert('Error', 'Background tracking not supported in Expo Go. Works in development builds only.');
+
+      setTrackingEnabled(true);
+      Alert.alert('Tracking Started', 'TapRight is now automatically checking your location.');
+
+    } catch (error: any) {
+      console.error('Failed to start tracking:', error);
+      Alert.alert('Error', error.message || 'Failed to start tracking');
     }
   };
 
   const stopBackgroundTracking = async () => {
     try {
-      if (Constants.appOwnership === 'expo') {
-        setTrackingEnabled(false);
-        return;
+      // Stop foreground subscription
+      if (locationSubscription) {
+        locationSubscription.remove();
+        setLocationSubscription(null);
       }
 
+      // Stop background task
       const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
       if (isRegistered) {
         await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
       }
+
       setTrackingEnabled(false);
     } catch (error) {
-      console.warn('Background tracking may not have been running:', error);
+      console.warn('Error stopping tracking:', error);
     }
   };
 
@@ -384,7 +457,7 @@ export default function HomeScreen() {
     } else if (data.no_cards) {
       Alert.alert('No Cards', 'Add cards to your wallet to get recommendations.');
     } else {
-      Alert.alert('No Merchants Nearby', 'No nearby merchants found in our database.');
+      Alert.alert('No Merchant Identified', 'We could not identify a merchant at this location.');
     }
   };
 
