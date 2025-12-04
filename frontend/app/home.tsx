@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { COLORS } from '../constants/Colors';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -418,7 +419,7 @@ export default function HomeScreen() {
             <Text style={styles.userName}>{user?.name || 'User'}</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color="white" />
+            <Ionicons name="log-out-outline" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -432,7 +433,7 @@ export default function HomeScreen() {
           <Ionicons
             name={trackingEnabled ? 'location' : 'location-outline'}
             size={20}
-            color="white"
+            color={trackingEnabled ? 'white' : COLORS.textPrimary}
           />
           <Text style={styles.trackingButtonText}>
             Tracking: {trackingEnabled ? 'ON' : 'OFF'}
@@ -458,7 +459,7 @@ export default function HomeScreen() {
               style={styles.manageCardsButton}
               onPress={() => router.push('/card-selection')}
             >
-              <Ionicons name="settings-outline" size={20} color="#667eea" />
+              <Ionicons name="settings-outline" size={20} color={COLORS.accent} />
               <Text style={styles.manageCardsText}>Manage Cards</Text>
             </TouchableOpacity>
           </View>
@@ -498,7 +499,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={24} color="#667eea" />
+          <Ionicons name="information-circle" size={24} color={COLORS.accent} />
           <Text style={styles.infoText}>
             {Platform.OS === 'web'
               ? '📱 For full location tracking, download the Expo Go app and scan the QR code. Web version allows manual location checks only.'
@@ -510,20 +511,7 @@ export default function HomeScreen() {
   );
 }
 
-const COLORS = {
-  background: '#0f172a',
-  surface: '#131c2f',
-  surfaceMuted: '#1e293b',
-  surfaceLight: '#20304d',
-  textPrimary: '#f8fafc',
-  textSecondary: '#cbd5f5',
-  accent: '#3b82f6',
-  accentMuted: '#60a5fa',
-  success: '#22c55e',
-  warning: '#facc15',
-  border: '#1f2a44',
-  shadow: 'rgba(8, 15, 35, 0.35)',
-};
+
 
 const styles = StyleSheet.create({
   container: {

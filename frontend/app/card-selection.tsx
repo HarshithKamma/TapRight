@@ -12,21 +12,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { COLORS } from '../constants/Colors';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const COLORS = {
-  background: '#0f172a',
-  surface: '#131c2f',
-  surfaceSoft: '#1d2539',
-  surfaceHighlight: '#1f2a44',
-  accent: '#3b82f6',
-  accentMuted: '#60a5fa',
-  textPrimary: '#f8fafc',
-  textSecondary: '#cbd5f5',
-  border: '#1f2a44',
-  success: '#22c55e',
-};
+
 
 interface CreditCard {
   id: string;
@@ -159,7 +149,7 @@ export default function CardSelectionScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#667eea" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
@@ -257,7 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    shadowColor: 'rgba(8, 15, 35, 0.4)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
@@ -308,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: 'rgba(8, 15, 35, 0.32)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.35,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -362,7 +352,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: 'rgba(8, 15, 35, 0.35)',
+    shadowColor: COLORS.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
