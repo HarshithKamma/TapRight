@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -45,18 +45,39 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      const { token, user } = response.data;
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      if (error) throw error;
+
+      if (data.session) {
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user?.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          // Continue anyway, maybe just with auth data
+        }
+
+        await AsyncStorage.setItem('token', data.session.access_token);
+        await AsyncStorage.setItem('user', JSON.stringify({
+          id: data.user?.id,
+          email: data.user?.email,
+          name: profile?.full_name || data.user?.user_metadata?.full_name,
+          phone: profile?.phone || data.user?.user_metadata?.phone,
+          ...profile
+        }));
+      }
 
       router.replace('/home');
     } catch (error: any) {
-      Alert.alert('Login Failed', error.response?.data?.detail || 'Invalid credentials');
+      Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
@@ -75,7 +96,7 @@ export default function LoginScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.title}>Welcome Back to TapRight</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
         <View style={styles.form}>

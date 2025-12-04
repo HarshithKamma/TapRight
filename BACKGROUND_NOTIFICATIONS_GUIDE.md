@@ -1,8 +1,8 @@
-# TapWise Automatic Background Notifications Guide
+# TapRight Automatic Background Notifications Guide
 
 ## How It Works
 
-TapWise automatically monitors your location in the background and sends you notifications when you're near stores that offer rewards with your credit cards.
+TapRight automatically monitors your location in the background and sends you notifications when you're near stores that offer rewards with your credit cards.
 
 ### Example Notification
 ```
@@ -12,7 +12,7 @@ TapWise automatically monitors your location in the background and sends you not
 ## Setup Requirements
 
 ### 1. Enable Location Tracking
-- Open TapWise app
+- Open TapRight app
 - Go to Home screen
 - Toggle "Tracking: ON" button at the top
 - Keep the app running in background
@@ -121,8 +121,8 @@ TapWise automatically monitors your location in the background and sends you not
 - Green badge confirms active tracking
 
 **Verify Permissions:**
-- Settings > TapWise > Location: "Always"
-- Settings > TapWise > Notifications: Enabled
+- Settings > TapRight > Location: "Always"
+- Settings > TapRight > Notifications: Enabled
 
 **Check Card Wallet:**
 - At least one card added
@@ -144,7 +144,7 @@ TapWise automatically monitors your location in the background and sends you not
 
 **Android:**
 - Check battery optimization settings
-- Disable "Battery Saver" for TapWise
+- Disable "Battery Saver" for TapRight
 - Allow "Run in background"
 
 ## API Endpoint for Manual Testing

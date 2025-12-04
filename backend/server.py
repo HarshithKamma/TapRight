@@ -23,11 +23,11 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # JWT Configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', 'tapwise-secret-key-change-in-production')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'tapright-secret-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
 
 # Create the main app
-app = FastAPI(title="TapWise API")
+app = FastAPI(title="TapRight API")
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
@@ -179,7 +179,7 @@ def get_best_card_for_category(user_cards: List[UserCard], category: str) -> Opt
 
 @api_router.get("/")
 async def root():
-    return {"message": "TapWise API", "version": "1.0.0"}
+    return {"message": "TapRight API", "version": "1.0.0"}
 
 # AUTH ROUTES
 @api_router.post("/auth/signup")

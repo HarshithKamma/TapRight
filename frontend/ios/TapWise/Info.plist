@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>TapWise</string>
+    <string>TapRight</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>tapwise</string>
-          <string>com.hkamma2004.tapwise</string>
+          <string>tapright</string>
+          <string>com.hkamma2004.tapright</string>
         </array>
       </dict>
     </array>
@@ -46,11 +46,11 @@
       <true/>
     </dict>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>TapWise needs your location to recommend the best credit card based on where you are.</string>
+    <string>TapRight needs your location to recommend the best credit card based on where you are.</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>TapWise needs your location to recommend the best credit card based on where you are.</string>
+    <string>TapRight needs your location to recommend the best credit card based on where you are.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

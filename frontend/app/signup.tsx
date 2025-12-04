@@ -13,11 +13,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
+import { supabase } from '../lib/supabase';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -148,23 +148,41 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-        name: trimmedName,
+      const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
-        phone: trimmedPhone,
-        password,
+        password: password,
+        options: {
+          data: {
+            full_name: trimmedName,
+            phone: trimmedPhone,
+          },
+        },
       });
 
-      const { token, user } = response.data;
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      if (error) throw error;
 
-      await requestNotificationPermission();
-      await requestLocationPermission();
+      if (data.session) {
+        await AsyncStorage.setItem('token', data.session.access_token);
+        await AsyncStorage.setItem('user', JSON.stringify({
+          id: data.user?.id,
+          name: trimmedName,
+          email: trimmedEmail,
+          phone: trimmedPhone
+        }));
 
-      router.replace('/questionnaire');
+        await requestNotificationPermission();
+        await requestLocationPermission();
+
+        router.replace('/questionnaire');
+      } else if (data.user) {
+        Alert.alert(
+          'Verify Email',
+          'Please check your email to confirm your account before logging in.',
+          [{ text: 'OK', onPress: () => router.replace('/login') }]
+        );
+      }
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.response?.data?.detail || 'Please try again');
+      Alert.alert('Signup Failed', error.message || 'Please try again');
     } finally {
       setLoading(false);
     }
@@ -184,7 +202,7 @@ export default function SignupScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.title}>Join TapRight</Text>
           <Text style={styles.subtitle}>Sign up to get started</Text>
 
           <View style={styles.form}>

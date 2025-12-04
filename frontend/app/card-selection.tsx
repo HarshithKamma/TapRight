@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -51,19 +51,27 @@ export default function CardSelectionScreen() {
 
   const loadCardsAndUserWallet = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       // Load all available cards
-      const cardsResponse = await axios.get(`${BACKEND_URL}/api/cards`);
-      setCards(cardsResponse.data);
-      
+      const { data: cardsData, error: cardsError } = await supabase
+        .from('credit_cards')
+        .select('*');
+
+      if (cardsError) throw cardsError;
+      setCards(cardsData || []);
+
       // Load user's current wallet
-      const userCardsResponse = await axios.get(`${BACKEND_URL}/api/user-cards`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
+      const { data: userCardsData, error: userCardsError } = await supabase
+        .from('user_cards')
+        .select('card_id')
+        .eq('user_id', user.id);
+
+      if (userCardsError) throw userCardsError;
+
       // Pre-select user's current cards
-      const userCardIds = new Set<string>(userCardsResponse.data.map((card: any) => card.card_id as string));
+      const userCardIds = new Set<string>((userCardsData || []).map((item: any) => item.card_id));
       setSelectedCards(userCardIds);
       setInitialCards(userCardIds);
     } catch (error) {
@@ -92,50 +100,46 @@ export default function CardSelectionScreen() {
 
     setSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
       // Find cards to add (newly selected)
       const cardsToAdd = Array.from(selectedCards).filter(
         cardId => !initialCards.has(cardId)
       );
-      
+
       // Find cards to remove (deselected)
       const cardsToRemove = Array.from(initialCards).filter(
         cardId => !selectedCards.has(cardId)
       );
-      
+
       // Add new cards
-      for (const cardId of cardsToAdd) {
-        try {
-          await axios.post(
-            `${BACKEND_URL}/api/user-cards?card_id=${cardId}`,
-            {},
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+      if (cardsToAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from('user_cards')
+          .insert(
+            cardsToAdd.map(cardId => ({
+              user_id: user.id,
+              card_id: cardId
+            }))
           );
-        } catch (error: any) {
-          // Skip if already exists
-          if (error.response?.status !== 400) {
-            throw error;
-          }
-        }
+        if (addError) throw addError;
       }
-      
+
       // Remove deselected cards
-      for (const cardId of cardsToRemove) {
-        await axios.delete(
-          `${BACKEND_URL}/api/user-cards/${cardId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+      if (cardsToRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from('user_cards')
+          .delete()
+          .in('card_id', cardsToRemove)
+          .eq('user_id', user.id);
+        if (removeError) throw removeError;
       }
 
       Alert.alert('Success', 'Wallet updated successfully!');
       router.replace('/home');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save cards');
+      Alert.alert('Error', error.message || 'Failed to save cards');
     } finally {
       setSubmitting(false);
     }
@@ -171,7 +175,7 @@ export default function CardSelectionScreen() {
         </TouchableOpacity>
         <Text style={styles.title}>Manage Your Cards</Text>
         <Text style={styles.subtitle}>
-          Select or deselect to add/remove cards
+          You just tell TapRight what cards you own and that’s it
         </Text>
         <Text style={styles.badge}>{selectedCards.size} Selected</Text>
       </View>

@@ -1,34 +1,34 @@
 {
   "expo": {
-    "name": "TapWise",
-    "slug": "tapwise",
+    "name": "TapRight",
+    "slug": "tapright",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "tapwise",
+    "icon": "./assets/images/tapright-logo.png",
+    "scheme": "tapright",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "owner": "tapwise",
+    "owner": "tapright",
     "extra": {
       "eas": {
-        "projectId": "tapwise-credit-card-app"
+        "projectId": "tapright-credit-card-app"
       }
     },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "TapWise needs your location to recommend the best credit card based on where you are.",
-        "NSLocationWhenInUseUsageDescription": "TapWise needs your location to recommend the best credit card based on where you are.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TapRight needs your location to recommend the best credit card based on where you are.",
+        "NSLocationWhenInUseUsageDescription": "TapRight needs your location to recommend the best credit card based on where you are.",
         "UIBackgroundModes": [
           "location",
           "location"
         ]
       },
-      "bundleIdentifier": "com.hkamma2004.tapwise"
+      "bundleIdentifier": "com.hkamma2004.tapright"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/tapright-logo.png",
         "backgroundColor": "#000"
       },
       "edgeToEdgeEnabled": true,
@@ -45,14 +45,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/tapright-logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/tapright-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000"
@@ -61,14 +61,14 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "TapWise needs your location to recommend the best credit card based on where you are.",
-          "locationWhenInUsePermission": "TapWise needs your location to recommend the best credit card based on where you are."
+          "locationAlwaysAndWhenInUsePermission": "TapRight needs your location to recommend the best credit card based on where you are.",
+          "locationWhenInUsePermission": "TapRight needs your location to recommend the best credit card based on where you are."
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/tapright-logo.png",
           "color": "#667eea"
         }
       ],
