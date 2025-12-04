@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TapWise Backend API Test Suite
+TapRight Backend API Test Suite
 Tests all backend endpoints including auth, cards, profile, and location-based recommendations
 """
 
@@ -15,7 +15,7 @@ BACKEND_URL = "https://smartswipe-2.preview.emergentagent.com/api"
 # Test data
 test_user = {
     "name": "Sarah Johnson",
-    "email": f"sarah.johnson.{int(time.time())}@tapwise.com",
+    "email": f"sarah.johnson.{int(time.time())}@tapright.com",
     "phone": "+1-555-0123",
     "password": "SecurePass123!"
 }
@@ -577,7 +577,7 @@ def test_protected_endpoint_no_token():
 # ============ MAIN TEST RUNNER ============
 def run_all_tests():
     print(f"\n{BLUE}{'='*80}{RESET}")
-    print(f"{BLUE}TapWise Backend API Test Suite{RESET}")
+    print(f"{BLUE}TapRight Backend API Test Suite{RESET}")
     print(f"{BLUE}Backend URL: {BACKEND_URL}{RESET}")
     print(f"{BLUE}{'='*80}{RESET}")
     

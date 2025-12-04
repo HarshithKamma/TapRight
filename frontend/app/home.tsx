@@ -12,13 +12,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import * as Location from 'expo-location';
+import { supabase } from '../lib/supabase';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const LOCATION_TASK_NAME = 'background-location-task';
 
 interface UserCard {
@@ -64,29 +63,168 @@ export default function HomeScreen() {
 
   const loadUserData = async () => {
     try {
-      const userStr = await AsyncStorage.getItem('user');
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!userStr || !token) {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
         router.replace('/');
         return;
       }
 
-      const userData = JSON.parse(userStr);
-      setUser(userData);
-
-      const response = await axios.get(`${BACKEND_URL}/api/user-cards`, {
-        headers: { Authorization: `Bearer ${token}` },
+      setUser({
+        id: user.id,
+        name: user.user_metadata?.full_name || 'User',
+        email: user.email || '',
       });
 
-      setCards(response.data);
+      const { data: userCards, error } = await supabase
+        .from('user_cards')
+        .select(`
+          id,
+          credit_cards (
+            id,
+            name,
+            issuer,
+            color,
+            rewards
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const formattedCards = userCards.map((item: any) => ({
+        id: item.credit_cards.id,
+        card_name: item.credit_cards.name,
+        card_issuer: item.credit_cards.issuer,
+        card_color: item.credit_cards.color,
+        rewards: item.credit_cards.rewards,
+      }));
+
+      setCards(formattedCards);
     } catch (error) {
       console.error('Failed to load data:', error);
       Alert.alert('Error', 'Failed to load data');
     } finally {
-      // Data loaded
+      setRefreshing(false);
     }
   };
+
+  // Helper to calculate distance
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  };
+
+  // Logic to check location and get recommendation
+  const checkLocation = async (latitude: number, longitude: number, userId: string) => {
+    // 1. Fetch merchants
+    const { data: merchants } = await supabase.from('merchants').select('*');
+    if (!merchants) return null;
+
+    // 2. Find nearby merchant
+    const nearbyMerchant = merchants.find(m => {
+      const dist = calculateDistance(latitude, longitude, m.latitude, m.longitude);
+      return dist <= (m.radius || 150);
+    });
+
+    if (!nearbyMerchant) return { found: false };
+
+    // 3. Fetch user cards to find best one
+    const { data: userCards } = await supabase
+      .from('user_cards')
+      .select(`
+      credit_cards (
+        name,
+        rewards
+      )
+    `)
+      .eq('user_id', userId);
+
+    if (!userCards || userCards.length === 0) {
+      return {
+        found: true,
+        no_cards: true,
+        recommendation: {
+          merchant_name: nearbyMerchant.name,
+          message: "Add cards to get rewards!"
+        }
+      };
+    }
+
+    // 4. Find best card
+    let bestCard: any = null;
+    let maxRate = 0;
+    const category = nearbyMerchant.category.toLowerCase();
+
+    userCards.forEach((item: any) => {
+      const card = item.credit_cards;
+      const rewards = card.rewards || {};
+      // Check specific category, then 'everything' or 'general'
+      const rate = rewards[category] || rewards['everything'] || rewards['general'] || 1;
+
+      if (rate > maxRate) {
+        maxRate = rate;
+        bestCard = card;
+      }
+    });
+
+    if (bestCard) {
+      return {
+        found: true,
+        recommendation: {
+          merchant_name: nearbyMerchant.name,
+          message: `Use ${bestCard.name} for ${maxRate}% back!`
+        }
+      };
+    }
+
+    return { found: true, recommendation: { merchant_name: nearbyMerchant.name, message: "Use your preferred card." } };
+  };
+
+  // Define background task
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
+    if (error) {
+      console.error('Background location error:', error);
+      return;
+    }
+    if (data) {
+      const { locations } = data;
+      const location = locations[0];
+
+      if (location) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
+
+          if (result?.found && result.recommendation && !result.no_cards) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: `💳 ${result.recommendation.merchant_name}`,
+                body: result.recommendation.message,
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+              },
+              trigger: null,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to check location:', error);
+        }
+      }
+    }
+  });
 
   const startBackgroundTracking = async () => {
     try {
@@ -105,56 +243,6 @@ export default function HomeScreen() {
         );
         return;
       }
-
-      // Define the background task only when starting tracking
-      TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
-        if (error) {
-          console.error('Background location error:', error);
-          return;
-        }
-        if (data) {
-          const { locations } = data;
-          const location = locations[0];
-          
-          if (location) {
-            try {
-              const token = await AsyncStorage.getItem('token');
-              const user = await AsyncStorage.getItem('user');
-              
-              if (!token || !user) return;
-              
-              const userData = JSON.parse(user);
-              
-              const response = await axios.post(
-                `${BACKEND_URL}/api/location/check`,
-                {
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                  user_id: userData.id,
-                },
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-
-              if (response.data.found && response.data.recommendation) {
-                const rec = response.data.recommendation;
-                await Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: `💳 ${rec.merchant_name}`,
-                    body: rec.message,
-                    sound: true,
-                    priority: Notifications.AndroidNotificationPriority.HIGH,
-                  },
-                  trigger: null,
-                });
-              }
-            } catch (error) {
-              console.error('Failed to check location:', error);
-            }
-          }
-        }
-      });
 
       const { status } = await Location.getBackgroundPermissionsAsync();
       if (status === 'granted') {
@@ -217,52 +305,18 @@ export default function HomeScreen() {
           accuracy: Location.Accuracy.Balanced,
         });
       } catch {
-        // Fallback for web or simulator - use sample location
-        Alert.alert(
-          'Location Unavailable',
-          'Using sample location (Starbucks Downtown) for testing. This feature works on real devices.',
-          [
-            {
-              text: 'Use Sample Location',
-              onPress: async () => {
-                const token = await AsyncStorage.getItem('token');
-                const response = await axios.post(
-                  `${BACKEND_URL}/api/location/check`,
-                  {
-                    latitude: 37.7749,
-                    longitude: -122.4194,
-                    user_id: user?.id,
-                  },
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-                await handleLocationResponse(response.data);
-              },
-            },
-            { text: 'Cancel', style: 'cancel' },
-          ]
-        );
-        return;
+        // Fallback for simulator
+        location = { coords: { latitude: 37.7749, longitude: -122.4194 } };
       }
 
-      const token = await AsyncStorage.getItem('token');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const response = await axios.post(
-        `${BACKEND_URL}/api/location/check`,
-        {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          user_id: user?.id,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
+      await handleLocationResponse(result);
 
-      await handleLocationResponse(response.data);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to check location');
+      Alert.alert('Error', error.message || 'Failed to check location');
     }
   };
 
@@ -276,12 +330,12 @@ export default function HomeScreen() {
 
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
+
       if (finalStatus !== 'granted') {
         console.log('Notification permission not granted');
         return;
@@ -289,11 +343,11 @@ export default function HomeScreen() {
 
       console.log('✅ Local notifications enabled');
       console.log('📍 Background tracking will send notifications when near merchants');
-      
+
       // Note: Local notifications don't require Expo Push Token
       // Remote push notifications are not supported in Expo Go SDK 53+
       // Our app uses local notifications triggered by location tracking
-      
+
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
     }

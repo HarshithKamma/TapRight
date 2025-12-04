@@ -31,7 +31,7 @@ export default function SplashScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.logoText}>TapRight</Text>
+          <Text style={styles.title}>TapRight</Text>
           <Text style={styles.tagline}>Smart Credit Card Assistant</Text>
         </View>
 
@@ -63,7 +63,7 @@ export default function SplashScreen() {
           >
             <Text style={styles.primaryButtonText}>Get Started</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => router.push('/login')}
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     gap: 12,
   },
-  logoText: {
+  title: {
     fontSize: 48,
     fontWeight: 'bold',
     color: COLORS.textPrimary,

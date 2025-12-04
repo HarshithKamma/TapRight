@@ -14,8 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -46,19 +46,24 @@ export default function QuestionnaireScreen() {
 
   const handleSubmit = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      await axios.put(
-        `${BACKEND_URL}/api/profile/questionnaire`,
-        {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        Alert.alert('Error', 'No user found');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
           monthly_rent: monthlyRent ? parseFloat(monthlyRent) : null,
           monthly_expenses: monthlyExpenses ? parseFloat(monthlyExpenses) : null,
           card_payments: cardPayments ? parseFloat(cardPayments) : null,
           car_payments: carPayments ? parseFloat(carPayments) : null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
 
       router.replace('/card-selection');
     } catch (error: any) {
