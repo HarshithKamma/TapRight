@@ -21,8 +21,11 @@
         "NSLocationWhenInUseUsageDescription": "TapRight needs your location to recommend the best credit card based on where you are.",
         "UIBackgroundModes": [
           "location",
+          "location",
+          "location",
           "location"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.hkamma2004.tapright"
     },
