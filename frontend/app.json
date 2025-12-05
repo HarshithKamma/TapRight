@@ -8,11 +8,11 @@
     "scheme": "tapright",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "owner": "tapright",
     "extra": {
       "eas": {
-        "projectId": "tapright-credit-card-app"
-      }
+        "projectId": "8bd3ad6a-60a3-4cb5-af6c-feba23b93e4d"
+      },
+      "router": {}
     },
     "ios": {
       "supportsTablet": true,

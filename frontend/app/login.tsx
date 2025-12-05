@@ -52,6 +52,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      console.log('Attempting login with URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -83,6 +84,7 @@ export default function LoginScreen() {
 
       router.replace('/home');
     } catch (error: any) {
+      console.error('Login Error Details:', error);
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
       setLoading(false);

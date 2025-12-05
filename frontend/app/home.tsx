@@ -23,6 +23,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { COLORS } from '../constants/Colors';
 import { identifyMerchant } from '../lib/mapbox';
+import PremiumAlert from '../components/PremiumAlert';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -92,6 +93,27 @@ export default function HomeScreen() {
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const lastNotificationTime = React.useRef<number>(0);
 
+  // Premium Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: '',
+    message: '',
+    icon: 'notifications' as keyof typeof Ionicons.glyphMap,
+    confirmText: 'Got it!',
+    onConfirm: () => setAlertVisible(false),
+  });
+
+  const showPremiumAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications') => {
+    setAlertConfig({
+      title,
+      message,
+      icon,
+      confirmText: 'Got it!',
+      onConfirm: () => setAlertVisible(false),
+    });
+    setAlertVisible(true);
+  };
+
   useEffect(() => {
     loadUserData();
     if (Constants.appOwnership !== 'expo') {
@@ -142,7 +164,7 @@ export default function HomeScreen() {
       setCards(formattedCards);
     } catch (error) {
       console.error('Failed to load data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      showPremiumAlert('Error', 'Failed to load data', 'alert-circle');
     } finally {
       setRefreshing(false);
     }
@@ -310,7 +332,7 @@ export default function HomeScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required for tracking.');
+        showPremiumAlert('Permission Denied', 'Location permission is required for tracking.', 'warning');
         return;
       }
 
@@ -360,11 +382,11 @@ export default function HomeScreen() {
       }
 
       setTrackingEnabled(true);
-      Alert.alert('Tracking Started', 'TapRight is now automatically checking your location.');
+      showPremiumAlert('Tracking Started', 'TapRight is now automatically checking your location.', 'location');
 
     } catch (error: any) {
       console.error('Failed to start tracking:', error);
-      Alert.alert('Error', error.message || 'Failed to start tracking');
+      showPremiumAlert('Error', error.message || 'Failed to start tracking', 'alert-circle');
     }
   };
 
@@ -400,7 +422,7 @@ export default function HomeScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required');
+        showPremiumAlert('Permission Denied', 'Location permission is required', 'warning');
         return;
       }
 
@@ -421,7 +443,7 @@ export default function HomeScreen() {
       await handleLocationResponse(result);
 
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to check location');
+      showPremiumAlert('Error', error.message || 'Failed to check location', 'alert-circle');
     }
   };
 
@@ -474,17 +496,16 @@ export default function HomeScreen() {
         }
       }
 
-      Alert.alert(
-        `💳 ${rec.merchant_name}`,
-        rec.message,
-        [{ text: 'Got it!' }]
-      );
+      // Use Premium Alert instead of native Alert
+      showPremiumAlert(`💳 ${rec.merchant_name}`, rec.message, 'card');
+
     } else if (data.throttled) {
-      Alert.alert('Already Notified', 'We recently sent a recommendation for this location.');
+      // Optional: Don't show alert for throttled, or show a subtle one
+      // showPremiumAlert('Already Notified', 'We recently sent a recommendation for this location.', 'time');
     } else if (data.no_cards) {
-      Alert.alert('No Cards', 'Add cards to your wallet to get recommendations.');
+      showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
     } else {
-      Alert.alert('No Merchant Identified', 'We could not identify a merchant at this location.');
+      showPremiumAlert('No Merchant Identified', 'We could not identify a merchant at this location.', 'search');
     }
   };
 
@@ -591,6 +612,18 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Premium Alert Component */}
+      <PremiumAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        confirmText={alertConfig.confirmText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertVisible(false)}
+        cancelText="Close" // Optional, or hide cancel button if not needed for simple alerts
+      />
     </View>
   );
 }
@@ -676,6 +709,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     gap: 12,
+    marginBottom: 12,
   },
   actionIcon: {
     width: 48,
