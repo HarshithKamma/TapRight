@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Animated,
+  Easing,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +50,38 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+// Custom Animated Switch Component
+const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange: () => void }) => {
+  const animValue = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(animValue, {
+      toValue: value ? 1 : 0,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  const translateX = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22], // Move from left (2) to right (22)
+  });
+
+  const backgroundColor = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLORS.surfaceHighlight, COLORS.success], // Grey to Green
+  });
+
+  return (
+    <Pressable onPress={onValueChange}>
+      <Animated.View style={[styles.switchTrack, { backgroundColor }]}>
+        <Animated.View style={[styles.switchThumb, { transform: [{ translateX }] }]} />
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -484,7 +519,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Good evening,</Text>
           <Text style={styles.userName}>{user?.name.split(' ')[0] || 'User'}</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.profileButton}>
+        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.profileButton}>
           <Ionicons name="person-circle-outline" size={32} color={COLORS.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -503,9 +538,7 @@ export default function HomeScreen() {
               <Ionicons name={trackingEnabled ? "radio" : "radio-outline"} size={18} color={trackingEnabled ? "white" : COLORS.textSecondary} />
             </View>
             <Text style={styles.statusTitle}>Background Tracking</Text>
-            <TouchableOpacity onPress={toggleTracking}>
-              <Ionicons name={trackingEnabled ? "toggle" : "toggle-outline"} size={32} color={trackingEnabled ? COLORS.success : COLORS.textSecondary} />
-            </TouchableOpacity>
+            <CustomSwitch value={trackingEnabled} onValueChange={toggleTracking} />
           </View>
           <Text style={styles.statusText}>
             {trackingEnabled
@@ -730,5 +763,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.accent,
+  },
+  switchTrack: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.5,
+    elevation: 2,
   },
 });
