@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
         marginLeft: 64,
     },
     menuItem: {
-        activeOpacity: 0.7,
+        // activeOpacity is a prop, not a style
     },
     logoutButton: {
         flexDirection: 'row',
