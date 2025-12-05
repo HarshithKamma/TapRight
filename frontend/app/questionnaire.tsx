@@ -69,6 +69,13 @@ export default function QuestionnaireScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+
           <View style={styles.iconWrap}>
             <Image
               source={logoSource}
@@ -266,5 +273,15 @@ const styles = StyleSheet.create({
   iconImage: {
     width: 88,
     height: 88,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceSoft,
+    marginBottom: 20,
   },
 });

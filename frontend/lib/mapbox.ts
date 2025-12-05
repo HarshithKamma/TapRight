@@ -63,7 +63,8 @@ export const identifyMerchant = async (latitude: number, longitude: number) => {
         console.log('❌ Mapbox found no features');
         return null;
     } catch (error) {
-        console.error('Mapbox API Error:', error);
+        // Log quietly to avoid spamming the bridge during network issues
+        console.log('Mapbox API request failed (likely network issue)');
         return null;
     }
 };

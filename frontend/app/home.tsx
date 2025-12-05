@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,12 +63,7 @@ export default function HomeScreen() {
       startBackgroundTracking();
     }
     registerForPushNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ... (existing code) ...
-
-
 
   const loadUserData = async () => {
     try {
@@ -418,10 +414,6 @@ export default function HomeScreen() {
       console.log('✅ Local notifications enabled');
       console.log('📍 Background tracking will send notifications when near merchants');
 
-      // Note: Local notifications don't require Expo Push Token
-      // Remote push notifications are not supported in Expo Go SDK 53+
-      // Our app uses local notifications triggered by location tracking
-
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
     }
@@ -485,106 +477,90 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greeting}>Hello,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-        </View>
+      <StatusBar barStyle="dark-content" />
 
-        <TouchableOpacity
-          style={[
-            styles.trackingButton,
-            trackingEnabled && styles.trackingButtonActive,
-          ]}
-          onPress={toggleTracking}
-        >
-          <Ionicons
-            name={trackingEnabled ? 'location' : 'location-outline'}
-            size={20}
-            color={trackingEnabled ? 'white' : COLORS.textPrimary}
-          />
-          <Text style={styles.trackingButtonText}>
-            Tracking: {trackingEnabled ? 'ON' : 'OFF'}
-          </Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Good evening,</Text>
+          <Text style={styles.userName}>{user?.name.split(' ')[0] || 'User'}</Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.profileButton}>
+          <Ionicons name="person-circle-outline" size={32} color={COLORS.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
         }
       >
-        <TouchableOpacity style={styles.checkButton} onPress={checkCurrentLocation}>
-          <Ionicons name="scan" size={24} color="white" />
-          <Text style={styles.checkButtonText}>Check Current Location</Text>
-        </TouchableOpacity>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Wallet</Text>
-            <TouchableOpacity
-              style={styles.manageCardsButton}
-              onPress={() => router.push('/card-selection')}
-            >
-              <Ionicons name="settings-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.manageCardsText}>Manage Cards</Text>
+        {/* Status Card */}
+        <View style={styles.statusCard}>
+          <View style={styles.statusHeader}>
+            <View style={[styles.statusIcon, { backgroundColor: trackingEnabled ? COLORS.success : COLORS.surfaceHighlight }]}>
+              <Ionicons name={trackingEnabled ? "radio" : "radio-outline"} size={18} color={trackingEnabled ? "white" : COLORS.textSecondary} />
+            </View>
+            <Text style={styles.statusTitle}>Background Tracking</Text>
+            <TouchableOpacity onPress={toggleTracking}>
+              <Ionicons name={trackingEnabled ? "toggle" : "toggle-outline"} size={32} color={trackingEnabled ? COLORS.success : COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
+          <Text style={styles.statusText}>
+            {trackingEnabled
+              ? "TapRight is monitoring your location for rewards."
+              : "Enable tracking to get automatic card recommendations."}
+          </Text>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.actionGrid}>
+          <TouchableOpacity style={styles.actionButton} onPress={checkCurrentLocation}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="scan" size={24} color={COLORS.accent} />
+            </View>
+            <Text style={styles.actionText}>Scan Location</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/card-selection')}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="add" size={24} color={COLORS.textPrimary} />
+            </View>
+            <Text style={styles.actionText}>Add Card</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Wallet Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Wallet</Text>
 
           {cards.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="card-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>No cards in wallet</Text>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => router.push('/card-selection')}
-              >
-                <Text style={styles.addButtonText}>Add Cards</Text>
-              </TouchableOpacity>
+              <Ionicons name="wallet-outline" size={48} color={COLORS.surfaceHighlight} />
+              <Text style={styles.emptyStateText}>No cards added yet.</Text>
             </View>
           ) : (
-            <>
+            <View style={styles.cardList}>
               {cards.map((card) => (
                 <View key={card.id} style={styles.cardItem}>
-                  <View
-                    style={[
-                      styles.cardColorBar,
-                      { backgroundColor: card.card_color },
-                    ]}
-                  />
-                  <View style={styles.cardDetails}>
+                  <View style={[styles.cardIcon, { backgroundColor: card.card_color || COLORS.surfaceHighlight }]} />
+                  <View style={styles.cardInfo}>
                     <Text style={styles.cardName}>{card.card_name}</Text>
                     <Text style={styles.cardIssuer}>{card.card_issuer}</Text>
-                    <Text style={styles.cardRewards}>
-                      {getRewardsSummary(card.rewards)}
-                    </Text>
+                  </View>
+                  <View style={styles.cardRewardBadge}>
+                    <Text style={styles.cardRewardText}>{getRewardsSummary(card.rewards).split(',')[0]}</Text>
                   </View>
                 </View>
               ))}
-            </>
+            </View>
           )}
-        </View>
-
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={24} color={COLORS.accent} />
-          <Text style={styles.infoText}>
-            {Platform.OS === 'web'
-              ? '📱 For full location tracking, download the Expo Go app and scan the QR code. Web version allows manual location checks only.'
-              : 'TapRight monitors your location in the background and sends local notifications when you\'re near merchants with rewards. Enable tracking above to start receiving recommendations!'}
-          </Text>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -592,264 +568,167 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.45,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 16,
-  },
-  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
   greeting: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   userName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    marginTop: 4,
   },
-  logoutButton: {
-    padding: 10,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceLight,
-  },
-  trackingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    marginTop: 16,
-    alignSelf: 'flex-start',
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  trackingButtonActive: {
-    backgroundColor: COLORS.success,
-    shadowOpacity: 0.45,
-  },
-  trackingButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
+  profileButton: {
+    padding: 4,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
   },
-  checkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.accent,
-    marginTop: 20,
-    paddingVertical: 16,
-    borderRadius: 18,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
-  checkButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  section: {
-    marginTop: 28,
-    padding: 20,
+  statusCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  manageCardsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    gap: 6,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  manageCardsText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 36,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 12,
-  },
-  addButton: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 50,
-    marginTop: 18,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 9,
-  },
-  addButtonText: {
-    color: COLORS.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cardItem: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  cardColorBar: {
-    width: 8,
-    borderRadius: 4,
-    marginRight: 14,
-  },
-  cardDetails: {
-    flex: 1,
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  cardIssuer: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  cardRewards: {
-    fontSize: 14,
-    color: COLORS.accentMuted,
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    marginTop: 28,
-    marginBottom: 28,
     padding: 20,
-    borderRadius: 24,
-    gap: 14,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.surfaceHighlight,
     shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  tokenBox: {
-    backgroundColor: COLORS.surface,
-    marginBottom: 28,
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-  },
-  tokenHeader: {
+  statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  tokenTitle: {
+  statusIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  statusTitle: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.accentMuted,
-    marginLeft: 8,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
-  tokenLabel: {
-    fontSize: 12,
+  statusText: {
+    fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: 8,
+    lineHeight: 20,
   },
-  tokenContainer: {
+  actionGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  section: {
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+    borderStyle: 'dashed',
+  },
+  emptyStateText: {
+    marginTop: 12,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  cardList: {
+    gap: 12,
+  },
+  cardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight,
-    padding: 12,
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.surfaceHighlight,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  tokenText: {
+  cardIcon: {
+    width: 40,
+    height: 26,
+    borderRadius: 6,
+    marginRight: 16,
+  },
+  cardInfo: {
     flex: 1,
+  },
+  cardName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  cardIssuer: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginTop: 2,
   },
-  tokenHint: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
+  cardRewardBadge: {
+    backgroundColor: COLORS.surfaceSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  cardRewardText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.accent,
   },
 });

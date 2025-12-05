@@ -1,68 +1,148 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Dimensions, StatusBar, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/Colors';
 
+const { width, height } = Dimensions.get('window');
 
+// Money items to rain down (Green bills only)
+const MONEY_ITEMS = ['💵', '💸']; // Removed 💲 as it can render grey
+const NUM_DROPS = 25;
+
+const MoneyDrop = ({ delay, startX, duration, size, opacity }: { delay: number, startX: number, duration: number, size: number, opacity: number }) => {
+  const translateY = useRef(new Animated.Value(-100)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animate = () => {
+      translateY.setValue(-100);
+      rotate.setValue(0);
+
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: height + 100,
+          duration: duration,
+          delay: delay,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotate, {
+          toValue: 1,
+          duration: duration,
+          delay: delay,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ]).start(() => animate());
+    };
+
+    animate();
+  }, []);
+
+  const spin = rotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
+
+  const randomItem = MONEY_ITEMS[Math.floor(Math.random() * MONEY_ITEMS.length)];
+
+  return (
+    <Animated.Text
+      style={{
+        position: 'absolute',
+        left: startX,
+        top: -50, // Start slightly off screen
+        fontSize: size,
+        transform: [{ translateY }, { rotate: spin }],
+        zIndex: 0,
+        opacity: opacity,
+        color: '#22c55e', // Force green color for any text symbols
+      }}
+    >
+      {randomItem}
+    </Animated.Text>
+  );
+};
 
 export default function SplashScreen() {
   const router = useRouter();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+  // Generate random drops with more variation
+  const drops = useRef(Array.from({ length: NUM_DROPS }).map((_, i) => ({
+    id: i,
+    startX: Math.random() * width,
+    delay: Math.random() * 8000, // Spread out start times more
+    duration: 5000 + Math.random() * 4000, // Slower fall for elegance
+    size: 24 + Math.random() * 24,
+    opacity: 0.3 + Math.random() * 0.4,
+  }))).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 20,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const logoSource = require('../assets/images/tapright-logo.png');
 
   return (
     <View style={styles.container}>
-      <View style={styles.gradient}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoBadge}>
+      <StatusBar barStyle="dark-content" />
+
+      {/* Money Rain Animation */}
+      {drops.map((drop) => (
+        <MoneyDrop key={drop.id} {...drop} />
+      ))}
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.centerContent}>
+          <View style={styles.logoContainer}>
+            <View style={styles.glowEffect} />
             <Image
               source={logoSource}
               style={styles.logoImage}
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.title}>TapRight</Text>
-          <Text style={styles.tagline}>Smart Credit Card Assistant</Text>
-        </View>
 
-        <View style={styles.featuresContainer}>
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="location" size={24} color={COLORS.textPrimary} />
-            </View>
-            <Text style={styles.featureText}>Location-Based</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="notifications" size={24} color={COLORS.textPrimary} />
-            </View>
-            <Text style={styles.featureText}>Smart Alerts</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="trending-up" size={24} color={COLORS.textPrimary} />
-            </View>
-            <Text style={styles.featureText}>Max Rewards</Text>
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>TapRight</Text>
+            <Text style={styles.tagline}>Maximize every swipe.</Text>
           </View>
         </View>
 
-        <View style={styles.buttonContainer}>
+        <View style={styles.footer}>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => router.push('/signup')}
+            activeOpacity={0.9}
           >
             <Text style={styles.primaryButtonText}>Get Started</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => router.push('/login')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.secondaryButtonText}>I Have an Account</Text>
+            <Text style={styles.secondaryButtonText}>I have an account</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -71,118 +151,88 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    overflow: 'hidden',
   },
-  gradient: {
+  content: {
     flex: 1,
     justifyContent: 'space-between',
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+    zIndex: 1, // Ensure content is above rain
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.surface,
-    borderRadius: 36,
-    margin: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.45,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 18,
+    gap: 40,
   },
   logoContainer: {
+    position: 'relative',
     alignItems: 'center',
-    marginTop: 24,
+    justifyContent: 'center',
+    width: 160,
+    height: 160,
+  },
+  glowEffect: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(28, 25, 23, 0.05)', // Subtle dark glow
+    transform: [{ scale: 1.2 }],
+  },
+  logoImage: {
+    width: 140,
+    height: 140,
+  },
+  textContainer: {
+    alignItems: 'center',
     gap: 12,
   },
   title: {
     fontSize: 48,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    fontWeight: '800',
+    color: COLORS.textPrimary, // Uses dark stone color
+    letterSpacing: -1,
   },
   tagline: {
     fontSize: 18,
     color: COLORS.textSecondary,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
-  featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  footer: {
     width: '100%',
-    paddingHorizontal: 12,
-  },
-  featureItem: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  featureText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 14,
+    gap: 20,
+    marginBottom: 20,
   },
   primaryButton: {
-    backgroundColor: COLORS.accent,
-    paddingVertical: 16,
-    borderRadius: 24,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.4,
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent, // Dark Stone
+    paddingVertical: 20,
+    borderRadius: 100,
+    gap: 12,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.5, // Stronger shadow for "glowing" effect
     shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
   },
   primaryButtonText: {
-    color: COLORS.textPrimary,
+    color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   secondaryButton: {
-    borderWidth: 2,
-    borderColor: COLORS.textSecondary,
-    paddingVertical: 16,
-    borderRadius: 24,
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    paddingVertical: 12,
   },
   secondaryButtonText: {
     color: COLORS.textSecondary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-  },
-  logoBadge: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surfaceSoft,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
-  },
-  featureIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surfaceHighlight,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
-  },
-  logoImage: {
-    width: 88,
-    height: 88,
   },
 });
