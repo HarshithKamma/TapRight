@@ -8,8 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
   ScrollView,
+  Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,8 +20,7 @@ import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
-
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+import PremiumAlert from '../components/PremiumAlert';
 
 type FormFields = {
   name: string;
@@ -29,7 +29,14 @@ type FormFields = {
   password: string;
 };
 
-
+type AlertConfig = {
+  visible: boolean;
+  title: string;
+  message: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -43,6 +50,35 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<AlertConfig>({
+    visible: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+    onCancel: () => { },
+  });
+
+  // Animation for form entry
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(20)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const updateFormValue = (field: keyof FormFields) => (value: string) => {
     formValuesRef.current[field] = value;
     const hasAllValues = Object.values(formValuesRef.current).every(
@@ -51,27 +87,31 @@ export default function SignupScreen() {
     setIsFormReady((prev) => (prev === hasAllValues ? prev : hasAllValues));
   };
 
-  const promptUser = (title: string, message: string) => {
+  const showPremiumAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications') => {
     return new Promise<boolean>((resolve) => {
-      Alert.alert(title, message, [
-        {
-          text: 'Not now',
-          style: 'cancel',
-          onPress: () => resolve(false),
+      setAlertConfig({
+        visible: true,
+        title,
+        message,
+        icon,
+        onConfirm: () => {
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+          resolve(true);
         },
-        {
-          text: 'Allow',
-          onPress: () => resolve(true),
+        onCancel: () => {
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+          resolve(false);
         },
-      ]);
+      });
     });
   };
 
   const requestNotificationPermission = async () => {
     try {
-      const shouldRequest = await promptUser(
+      const shouldRequest = await showPremiumAlert(
         'Stay in the loop?',
-        'Would you like us to send you notifications for card recommendations?'
+        'Would you like us to send you notifications for card recommendations?',
+        'notifications'
       );
 
       if (!shouldRequest) {
@@ -86,9 +126,10 @@ export default function SignupScreen() {
 
   const requestLocationPermission = async () => {
     try {
-      const shouldRequest = await promptUser(
+      const shouldRequest = await showPremiumAlert(
         'Share your location?',
-        'Allow TapRight to access your location even in the background so we can send timely recommendations.'
+        'Allow TapRight to access your location even in the background so we can send timely recommendations.',
+        'location'
       );
 
       if (!shouldRequest) {
@@ -160,10 +201,13 @@ export default function SignupScreen() {
           phone: trimmedPhone
         }));
 
-        await requestNotificationPermission();
-        await requestLocationPermission();
+        setLoading(false);
 
-        router.replace('/questionnaire');
+        setTimeout(async () => {
+          await requestNotificationPermission();
+          await requestLocationPermission();
+          router.replace('/questionnaire');
+        }, 500);
       } else if (data.user) {
         Alert.alert(
           'Verify Email',
@@ -172,19 +216,36 @@ export default function SignupScreen() {
         );
       }
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.message || 'Please try again');
-    } finally {
       setLoading(false);
+      Alert.alert('Signup Failed', error.message || 'Please try again');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
+    <View style={styles.container}>
+      <PremiumAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.accent} />
+            <Text style={styles.loadingText}>Creating your account...</Text>
+          </View>
+        </View>
+      )}
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -192,91 +253,89 @@ export default function SignupScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Join TapRight</Text>
-          <Text style={styles.subtitle}>Sign up to get started</Text>
-
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="person" size={20} color={COLORS.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                placeholderTextColor={COLORS.placeholder}
-                onChangeText={updateFormValue('name')}
-                autoCapitalize="words"
-              />
+          <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>Join TapRight to maximize your rewards.</Text>
             </View>
 
-            <View style={styles.inputContainer}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="mail" size={20} color={COLORS.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={COLORS.placeholder}
-                onChangeText={updateFormValue('email')}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="call" size={20} color={COLORS.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Phone Number"
-                placeholderTextColor={COLORS.placeholder}
-                onChangeText={updateFormValue('phone')}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="lock-closed" size={20} color={COLORS.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={COLORS.placeholder}
-                onChangeText={updateFormValue('password')}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.iconBadge}>
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={18}
-                  color={COLORS.textSecondary}
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Jim Carrey"
+                  placeholderTextColor={COLORS.placeholder}
+                  onChangeText={updateFormValue('name')}
+                  autoCapitalize="words"
                 />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="truman@example.com"
+                  placeholderTextColor={COLORS.placeholder}
+                  onChangeText={updateFormValue('email')}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="(555) 123-4567"
+                  placeholderTextColor={COLORS.placeholder}
+                  onChangeText={updateFormValue('phone')}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="••••••••"
+                    placeholderTextColor={COLORS.placeholder}
+                    onChangeText={updateFormValue('password')}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.signupButton, (!isFormReady || loading) && styles.signupButtonDisabled]}
+                onPress={handleSignup}
+                disabled={loading || !isFormReady}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.signupButtonText, !isFormReady && styles.signupButtonTextDisabled]}>
+                  Sign Up
+                </Text>
+                {isFormReady && <Ionicons name="arrow-forward" size={20} color="white" />}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => router.push('/login')} style={styles.loginLinkWrapper}>
+                <Text style={styles.loginText}>
+                  Already have an account? <Text style={styles.loginLink}>Log in</Text>
+                </Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={[styles.signupButton, (!isFormReady || loading) && styles.signupButtonDisabled]}
-              onPress={handleSignup}
-              disabled={loading || !isFormReady}
-            >
-              {loading ? (
-                <ActivityIndicator color={COLORS.textPrimary} />
-              ) : (
-                <Text style={styles.signupButtonText}>Sign Up</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push('/login')} style={styles.loginLinkWrapper}>
-              <Text style={styles.loginText}>
-                Already have an account? <Text style={styles.loginLink}>Login</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -285,107 +344,144 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-    gap: 20,
+    paddingBottom: 40,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    marginTop: 60,
+    marginLeft: 24,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: COLORS.surfaceSoft,
+  },
+  content: {
+    paddingHorizontal: 32,
+    marginTop: 32,
+  },
+  header: {
+    marginBottom: 40,
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginTop: 12,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.textSecondary,
-    marginTop: 6,
+    marginTop: 8,
+    lineHeight: 24,
   },
   form: {
-    marginTop: 28,
-    backgroundColor: COLORS.surface,
-    padding: 24,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 16,
-    shadowColor: COLORS.border,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    gap: 24,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    height: 58,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  inputGroup: {
+    gap: 8,
   },
-  inputIcon: {
-    marginRight: 12,
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginLeft: 4,
   },
   input: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+  },
+  passwordInput: {
     flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     fontSize: 16,
     color: COLORS.textPrimary,
   },
+  eyeIcon: {
+    padding: 16,
+  },
   signupButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 20,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.4,
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent,
+    paddingVertical: 18,
+    borderRadius: 100,
+    marginTop: 16,
+    gap: 8,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.3,
     shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   signupButtonDisabled: {
     backgroundColor: COLORS.surfaceHighlight,
     shadowOpacity: 0,
   },
   signupButtonText: {
-    color: COLORS.textPrimary,
+    color: 'white', // White text on dark button
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  signupButtonTextDisabled: {
+    color: COLORS.textSecondary,
+  },
+  loginLinkWrapper: {
+    marginTop: 16,
+    alignItems: 'center',
   },
   loginText: {
     color: COLORS.textSecondary,
-    textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
   },
   loginLink: {
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
-  loginLinkWrapper: {
-    marginTop: 8,
-  },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Light overlay
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceHighlight,
-    marginRight: 12,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+    shadowColor: 'black',
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  loadingText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

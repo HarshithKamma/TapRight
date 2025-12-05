@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
-
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-
-
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,6 +23,26 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Animation for form entry
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -52,7 +69,6 @@ export default function LoginScreen() {
 
         if (profileError) {
           console.error('Error fetching profile:', profileError);
-          // Continue anyway, maybe just with auth data
         }
 
         await AsyncStorage.setItem('token', data.session.access_token);
@@ -73,12 +89,16 @@ export default function LoginScreen() {
     }
   };
 
+  if (loading) {
+    return <LoadingScreen message="Signing you in..." />;
+  }
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.content}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -86,66 +106,66 @@ export default function LoginScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Welcome Back to TapRight</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <View style={styles.iconBadge}>
-              <Ionicons name="mail" size={20} color={COLORS.textSecondary} />
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={COLORS.placeholder}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+        <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue your journey.</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <View style={styles.iconBadge}>
-              <Ionicons name="lock-closed" size={20} color={COLORS.textSecondary} />
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={COLORS.placeholder}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.iconBadge}>
-              <Ionicons
-                name={showPassword ? 'eye-off' : 'eye'}
-                size={18}
-                color={COLORS.textSecondary}
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="john@example.com"
+                placeholderTextColor={COLORS.placeholder}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="••••••••"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={COLORS.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.loginButtonText}>Log In</Text>
+              <Ionicons name="arrow-forward" size={20} color="white" />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLinkWrapper}>
+              <Text style={styles.signupText}>
+                Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.textPrimary} />
-            ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLinkWrapper}>
-            <Text style={styles.signupText}>
-              Don&apos;t have an account? <Text style={styles.signupLink}>Sign Up</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -154,104 +174,113 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  content: {
+  keyboardView: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-    gap: 20,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    marginTop: 60,
+    marginLeft: 24,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: COLORS.surfaceSoft,
   },
+  content: {
+    flex: 1,
+    paddingHorizontal: 32,
+    marginTop: 32,
+  },
+  header: {
+    marginBottom: 40,
+  },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginTop: 12,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.textSecondary,
     marginTop: 8,
   },
   form: {
-    marginTop: 32,
-    backgroundColor: COLORS.surface,
-    padding: 24,
-    borderRadius: 28,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    gap: 24,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    height: 58,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  inputGroup: {
+    gap: 8,
   },
-  inputIcon: {
-    marginRight: 12,
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginLeft: 4,
   },
   input: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+  },
+  passwordInput: {
     flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     fontSize: 16,
     color: COLORS.textPrimary,
   },
+  eyeIcon: {
+    padding: 16,
+  },
   loginButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 20,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent,
+    paddingVertical: 18,
+    borderRadius: 100,
+    marginTop: 16,
+    gap: 8,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   loginButtonDisabled: {
     backgroundColor: COLORS.surfaceHighlight,
     shadowOpacity: 0,
   },
   loginButtonText: {
-    color: COLORS.textPrimary,
+    color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   signupText: {
     color: COLORS.textSecondary,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
   },
   signupLink: {
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    fontWeight: '700',
+    color: COLORS.accent,
   },
   signupLinkWrapper: {
-    marginTop: 12,
-  },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    marginTop: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surfaceHighlight,
-    marginRight: 12,
   },
 });
