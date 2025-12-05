@@ -72,19 +72,19 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)', // Slightly darker overlay for better contrast
     },
     alertContainer: {
         width: width * 0.85,
-        backgroundColor: '#1e293b', // Dark slate
+        backgroundColor: COLORS.surface, // White background
         borderRadius: 28,
         padding: 24,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        shadowColor: '#000',
+        borderColor: COLORS.border,
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.2, // Softer shadow for light theme
         shadowRadius: 20,
         elevation: 10,
     },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         shadowColor: COLORS.accent,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.2,
         shadowRadius: 12,
         elevation: 8,
     },
@@ -106,13 +106,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: 'white',
+        color: COLORS.textPrimary, // Dark text
         marginBottom: 8,
         textAlign: 'center',
     },
     message: {
         fontSize: 16,
-        color: '#94a3b8', // Slate 400
+        color: COLORS.textSecondary, // Grey text
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 22,
@@ -127,12 +127,12 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: COLORS.surfaceSoft, // Light grey background
         alignItems: 'center',
         justifyContent: 'center',
     },
     cancelText: {
-        color: '#94a3b8',
+        color: COLORS.textSecondary,
         fontSize: 16,
         fontWeight: '600',
     },

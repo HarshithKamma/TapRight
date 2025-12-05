@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   submitButtonText: {
-    color: COLORS.textPrimary,
+    color: 'white', // Force white text on dark button
     fontSize: 18,
     fontWeight: 'bold',
   },
