@@ -470,6 +470,7 @@ export default function HomeScreen() {
 
       console.log('✅ Local notifications enabled');
       console.log('📍 Background tracking will send notifications when near merchants');
+      console.log('📍Location getting store in supabase DB')
 
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
