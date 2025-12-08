@@ -87,3 +87,4 @@ android-sdk/ -e
 # MongoDB
 mongodb_data/
 mongodb.log*
+backend.log
