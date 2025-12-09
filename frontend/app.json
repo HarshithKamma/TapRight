@@ -58,7 +58,7 @@
           "image": "./assets/images/tapright-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000"
+          "backgroundColor": "#FFFFFF"
         }
       ],
       [

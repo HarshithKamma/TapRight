@@ -91,7 +91,14 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
-  const lastNotificationTime = React.useRef<number>(0);
+  const lastNotificationTime = useRef<number>(0);
+
+  // Check system state for tracking
+  useEffect(() => {
+    TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME).then(isRegistered => {
+      setTrackingEnabled(isRegistered);
+    });
+  }, []);
 
   // Premium Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -116,14 +123,24 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadUserData();
-    if (Constants.appOwnership !== 'expo') {
-      startBackgroundTracking();
-    }
     registerForPushNotifications();
   }, []);
 
   const loadUserData = async () => {
     try {
+      // Restore tracking state
+      const savedTracking = await AsyncStorage.getItem('trackingEnabled');
+      if (savedTracking === 'true') {
+        setTrackingEnabled(true);
+        // We don't automatically restart it here to avoid the popup loop effectively,
+        // unless you want it to persist. 
+        // Better: Only start if user explicitly turns it on, OR check if already running.
+        const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+        if (isRegistered) {
+          setTrackingEnabled(true);
+        }
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -382,6 +399,7 @@ export default function HomeScreen() {
       }
 
       setTrackingEnabled(true);
+      await AsyncStorage.setItem('trackingEnabled', 'true');
       showPremiumAlert('Tracking Started', 'TapRight is now automatically checking your location.', 'location');
 
     } catch (error: any) {
@@ -405,6 +423,7 @@ export default function HomeScreen() {
       }
 
       setTrackingEnabled(false);
+      await AsyncStorage.setItem('trackingEnabled', 'false');
     } catch (error) {
       console.warn('Error stopping tracking:', error);
     }
@@ -470,7 +489,7 @@ export default function HomeScreen() {
 
       console.log('✅ Local notifications enabled');
       console.log('📍 Background tracking will send notifications when near merchants');
-      console.log('📍Location getting store in supabase DB')
+      console.log('📍Location getting stored in supabase DB')
 
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
