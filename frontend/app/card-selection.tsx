@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
+import PremiumAlert from '../components/PremiumAlert';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -34,6 +35,12 @@ export default function CardSelectionScreen() {
   const [initialCards, setInitialCards] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [cardToRemove, setCardToRemove] = useState<string | null>(null);
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     loadCardsAndUserWallet();
@@ -75,11 +82,59 @@ export default function CardSelectionScreen() {
   const toggleCard = (cardId: string) => {
     const newSelected = new Set(selectedCards);
     if (newSelected.has(cardId)) {
+      // If the card was in the initial wallet, show confirmation popup
+      if (initialCards.has(cardId)) {
+        setCardToRemove(cardId);
+        setShowRemoveConfirm(true);
+        return;
+      }
       newSelected.delete(cardId);
     } else {
       newSelected.add(cardId);
     }
     setSelectedCards(newSelected);
+  };
+
+  const getCardName = (cardId: string): string => {
+    const card = cards.find(c => c.id === cardId);
+    return card ? card.name : 'this card';
+  };
+
+  const handleConfirmRemove = () => {
+    if (cardToRemove) {
+      const newSelected = new Set(selectedCards);
+      newSelected.delete(cardToRemove);
+      setSelectedCards(newSelected);
+    }
+    setShowRemoveConfirm(false);
+    setCardToRemove(null);
+  };
+
+  const handleCancelRemove = () => {
+    setShowRemoveConfirm(false);
+    setCardToRemove(null);
+  };
+
+  const handleClearAllPress = () => {
+    setShowClearAllConfirm(true);
+  };
+
+  const handleConfirmClearAll = () => {
+    setSelectedCards(new Set());
+    setShowClearAllConfirm(false);
+  };
+
+  const handleCancelClearAll = () => {
+    setShowClearAllConfirm(false);
+  };
+
+  const handleSuccessConfirm = () => {
+    setShowSuccessAlert(false);
+    router.replace('/home');
+  };
+
+  const handleErrorConfirm = () => {
+    setShowErrorAlert(false);
   };
 
   const handleContinue = async () => {
@@ -124,10 +179,10 @@ export default function CardSelectionScreen() {
         if (removeError) throw removeError;
       }
 
-      Alert.alert('Success', 'Wallet updated successfully!');
-      router.replace('/home');
+      setShowSuccessAlert(true);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save cards');
+      setErrorMessage(error.message || 'Failed to save cards');
+      setShowErrorAlert(true);
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +218,7 @@ export default function CardSelectionScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
           {selectedCards.size > 0 && (
-            <TouchableOpacity onPress={() => setSelectedCards(new Set())} style={styles.clearButton}>
+            <TouchableOpacity onPress={handleClearAllPress} style={styles.clearButton}>
               <Text style={styles.clearButtonText}>Clear All</Text>
             </TouchableOpacity>
           )}
@@ -232,6 +287,50 @@ export default function CardSelectionScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      <PremiumAlert
+        visible={showRemoveConfirm}
+        title="Remove Card?"
+        message={`Are you sure you want to remove ${cardToRemove ? getCardName(cardToRemove) : 'this card'} from your wallet?`}
+        icon="card-outline"
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={handleConfirmRemove}
+        onCancel={handleCancelRemove}
+      />
+
+      <PremiumAlert
+        visible={showClearAllConfirm}
+        title="Clear All Cards?"
+        message="Are you sure you want to remove all cards from your wallet?"
+        icon="trash-outline"
+        confirmText="Clear All"
+        cancelText="Cancel"
+        onConfirm={handleConfirmClearAll}
+        onCancel={handleCancelClearAll}
+      />
+
+      <PremiumAlert
+        visible={showSuccessAlert}
+        title="Success"
+        message="Wallet updated successfully!"
+        icon="checkmark-circle"
+        confirmText="OK"
+        cancelText=""
+        onConfirm={handleSuccessConfirm}
+        onCancel={handleSuccessConfirm}
+      />
+
+      <PremiumAlert
+        visible={showErrorAlert}
+        title="Error"
+        message={errorMessage}
+        icon="alert-circle"
+        confirmText="OK"
+        cancelText=""
+        onConfirm={handleErrorConfirm}
+        onCancel={handleErrorConfirm}
+      />
     </View >
   );
 }

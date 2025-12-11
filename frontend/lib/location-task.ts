@@ -9,7 +9,6 @@ export const LOCATION_TASK_NAME = 'background-location-task';
 // Configure notification handler (can be called multiple times safely, but good to have here)
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
         shouldShowBanner: true,

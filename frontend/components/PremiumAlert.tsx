@@ -45,12 +45,14 @@ export default function PremiumAlert({
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
 
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-                            <Text style={styles.cancelText}>{cancelText}</Text>
-                        </TouchableOpacity>
+                    <View style={[styles.buttonContainer, !cancelText && styles.buttonContainerSingle]}>
+                        {cancelText ? (
+                            <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+                                <Text style={styles.cancelText}>{cancelText}</Text>
+                            </TouchableOpacity>
+                        ) : null}
 
-                        <TouchableOpacity onPress={onConfirm} style={styles.confirmButtonWrapper}>
+                        <TouchableOpacity onPress={onConfirm} style={[styles.confirmButtonWrapper, !cancelText && styles.confirmButtonWrapperFull]}>
                             <LinearGradient
                                 colors={[COLORS.accent, '#2980b9']}
                                 start={{ x: 0, y: 0 }}
@@ -123,6 +125,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         gap: 12,
     },
+    buttonContainerSingle: {
+        justifyContent: 'center',
+    },
     cancelButton: {
         flex: 1,
         paddingVertical: 14,
@@ -143,6 +148,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 6,
+    },
+    confirmButtonWrapperFull: {
+        width: '100%',
     },
     confirmButton: {
         paddingVertical: 14,

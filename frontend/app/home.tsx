@@ -42,7 +42,6 @@ interface User {
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
@@ -90,6 +89,8 @@ export default function HomeScreen() {
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   const lastNotificationTime = useRef<number>(0);
+  const notificationsRegistered = useRef<boolean>(false);
+  const isScanning = useRef<boolean>(false);
 
   // Check system state for tracking
   useEffect(() => {
@@ -280,6 +281,12 @@ export default function HomeScreen() {
   };
 
   const checkCurrentLocation = async () => {
+    // Prevent duplicate scans
+    if (isScanning.current) {
+      return;
+    }
+    isScanning.current = true;
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -305,10 +312,17 @@ export default function HomeScreen() {
 
     } catch (error: any) {
       showPremiumAlert('Error', error.message || 'Failed to check location', 'alert-circle');
+    } finally {
+      isScanning.current = false;
     }
   };
 
   const registerForPushNotifications = async () => {
+    // Prevent duplicate registrations
+    if (notificationsRegistered.current) {
+      return;
+    }
+
     try {
       // Skip on web platform
       if (Platform.OS === 'web') {
@@ -329,9 +343,9 @@ export default function HomeScreen() {
         return;
       }
 
+      notificationsRegistered.current = true;
       console.log('✅ Local notifications enabled');
       console.log('📍 Background tracking will send notifications when near merchants');
-      console.log('📍Location getting stored in supabase DB')
 
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
@@ -357,18 +371,15 @@ export default function HomeScreen() {
           console.error('Failed to schedule notification:', error);
         }
       }
-
-      // Use Premium Alert instead of native Alert
-      showPremiumAlert(`💳 ${rec.merchant_name}`, rec.message, 'card');
+      // Notification only - no popup
 
     } else if (data.throttled) {
-      // Optional: Don't show alert for throttled, or show a subtle one
-      // showPremiumAlert('Already Notified', 'We recently sent a recommendation for this location.', 'time');
+      // Skip - already notified recently
     } else if (data.no_cards) {
+      // Only show popup for important errors that need user action
       showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
-    } else {
-      showPremiumAlert('No Merchant Identified', 'We could not identify a merchant at this location.', 'search');
     }
+    // No popup for "No Merchant Identified" - just silent
   };
 
   const onRefresh = async () => {

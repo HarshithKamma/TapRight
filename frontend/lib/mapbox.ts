@@ -18,55 +18,78 @@ export const identifyMerchant = async (latitude: number, longitude: number) => {
     }
 
     try {
-        // 1. Try to find a POI (Point of Interest) first
-        // This ensures we get "Chevron" instead of "Mason St" if both are valid
-        // limit=5 allows us to find the POI even if it's slightly further than the street center
-        const poiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=poi&limit=5&access_token=${MAPBOX_ACCESS_TOKEN}`;
-        console.log('🔍 Querying Mapbox (POI):', `${longitude},${latitude}`);
+        // Use Mapbox Geocoding with reverseMode=score to prioritize POIs by relevance
+        const poiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=poi&limit=10&reverseMode=score&access_token=${MAPBOX_ACCESS_TOKEN}`;
+        console.log('🔍 Querying Mapbox at:', `${latitude.toFixed(5)},${longitude.toFixed(5)}`);
 
         const poiResponse = await fetch(poiUrl);
+        console.log('📡 Mapbox response status:', poiResponse.status);
+
         const poiData: any = await poiResponse.json();
 
+        // Debug: log raw response
+        if (poiData.message) {
+            console.log('⚠️ Mapbox API error:', poiData.message);
+        }
+        console.log('📦 Mapbox features count:', poiData.features?.length || 0);
+
         if (poiData.features && poiData.features.length > 0) {
-            const feature = poiData.features[0];
-            console.log('✅ Mapbox found POI:', feature.text, '| Category:', feature.properties.category);
-            return {
-                name: feature.text,
-                category: mapCategory(feature.properties.category || feature.properties.maki || ''),
-                raw_category: feature.properties.category,
-                address: feature.place_name,
-                latitude: feature.center[1],
-                longitude: feature.center[0],
-            };
+            console.log(`📍 Found ${poiData.features.length} POIs nearby:`);
+
+            // Log all POIs with their distances for debugging
+            const poisWithDistance = poiData.features.map((feature: any) => {
+                const poiLat = feature.center[1];
+                const poiLon = feature.center[0];
+                const distance = getDistanceInMeters(latitude, longitude, poiLat, poiLon);
+                return { feature, distance };
+            });
+
+            // Sort by distance
+            poisWithDistance.sort((a: any, b: any) => a.distance - b.distance);
+
+            // Log top 3 for debugging
+            poisWithDistance.slice(0, 3).forEach((item: any, i: number) => {
+                console.log(`   ${i + 1}. ${item.feature.text} - ${Math.round(item.distance)}m (${item.feature.properties.category || 'no category'})`);
+            });
+
+            // Find closest POI within 500 meters (increased from 100m)
+            const closest = poisWithDistance.find((item: any) => item.distance < 500);
+
+            if (closest) {
+                console.log('✅ Using:', closest.feature.text, '| Distance:', Math.round(closest.distance) + 'm');
+                return {
+                    name: closest.feature.text,
+                    category: mapCategory(closest.feature.properties.category || closest.feature.properties.maki || ''),
+                    raw_category: closest.feature.properties.category,
+                    address: closest.feature.place_name,
+                    latitude: closest.feature.center[1],
+                    longitude: closest.feature.center[0],
+                };
+            } else {
+                console.log('❌ All POIs are more than 500m away');
+            }
+        } else {
+            console.log('❌ Mapbox returned no POIs');
         }
 
-        // 2. Fallback to Address if no POI found
-        const addressUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=address&limit=1&access_token=${MAPBOX_ACCESS_TOKEN}`;
-        console.log('🔍 Querying Mapbox (Address):', `${longitude},${latitude}`);
-
-        const addressResponse = await fetch(addressUrl);
-        const addressData: any = await addressResponse.json();
-
-        if (addressData.features && addressData.features.length > 0) {
-            const feature = addressData.features[0];
-            console.log('✅ Mapbox found Address:', feature.text);
-            return {
-                name: feature.text,
-                category: 'general', // Addresses are always general
-                raw_category: 'address',
-                address: feature.place_name,
-                latitude: feature.center[1],
-                longitude: feature.center[0],
-            };
-        }
-
-        console.log('❌ Mapbox found no features');
         return null;
     } catch (error) {
-        // Log quietly to avoid spamming the bridge during network issues
-        console.log('Mapbox API request failed (likely network issue)');
+        console.log('Mapbox API request failed:', error);
         return null;
     }
+};
+
+// Calculate distance between two coordinates in meters using Haversine formula
+const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
 };
 
 // Map Mapbox categories to TapRight categories
