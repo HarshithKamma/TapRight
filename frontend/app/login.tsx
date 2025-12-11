@@ -9,13 +9,14 @@ import {
   Platform,
   Alert,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
-import LoadingScreen from '../components/LoadingScreen';
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function LoginScreen() {
     try {
       console.log('Attempting login with URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -84,16 +85,14 @@ export default function LoginScreen() {
 
       router.replace('/home');
     } catch (error: any) {
-      console.error('Login Error Details:', error);
+      console.log('Login Error Details:', error);
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <LoadingScreen message="Signing you in..." />;
-  }
+
 
   return (
     <View style={styles.container}>
@@ -155,8 +154,14 @@ export default function LoginScreen() {
               disabled={loading}
               activeOpacity={0.8}
             >
-              <Text style={styles.loginButtonText}>Log In</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Text style={styles.loginButtonText}>Log In</Text>
+                  <Ionicons name="arrow-forward" size={20} color="white" />
+                </>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLinkWrapper}>

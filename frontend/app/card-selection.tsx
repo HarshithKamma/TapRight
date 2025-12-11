@@ -83,10 +83,8 @@ export default function CardSelectionScreen() {
   };
 
   const handleContinue = async () => {
-    if (selectedCards.size === 0) {
-      Alert.alert('Select Cards', 'Please select at least one credit card');
-      return;
-    }
+    // Allow saving empty wallet (0 cards)
+
 
     setSubmitting(true);
     try {
@@ -157,17 +155,26 @@ export default function CardSelectionScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Manage Your Cards</Text>
-        <Text style={styles.subtitle}>
-          You just tell TapRight what cards you own and that’s it
-        </Text>
-        <Text style={styles.badge}>{selectedCards.size} Selected</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          {selectedCards.size > 0 && (
+            <TouchableOpacity onPress={() => setSelectedCards(new Set())} style={styles.clearButton}>
+              <Text style={styles.clearButtonText}>Clear All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Manage Your Cards</Text>
+          <Text style={styles.subtitle}>
+            You just tell TapRight what cards you own and that’s it
+          </Text>
+          <Text style={styles.badge}>{selectedCards.size} Selected</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.cardList} contentContainerStyle={styles.cardListContent}>
@@ -214,10 +221,9 @@ export default function CardSelectionScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            selectedCards.size === 0 && styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={submitting || selectedCards.size === 0}
+          disabled={submitting}
         >
           {submitting ? (
             <ActivityIndicator color={COLORS.textPrimary} />
@@ -226,7 +232,7 @@ export default function CardSelectionScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </View >
   );
 }
 
@@ -253,14 +259,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 16,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerContent: {
+    gap: 8,
+  },
   backButton: {
     width: 44,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
     borderRadius: 16,
     backgroundColor: COLORS.surfaceSoft,
+  },
+  clearButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: COLORS.surfaceSoft,
+    borderRadius: 16,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.error,
   },
   title: {
     fontSize: 32,
@@ -363,7 +388,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   continueButtonText: {
-    color: COLORS.textPrimary,
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },

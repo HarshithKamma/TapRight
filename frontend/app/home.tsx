@@ -22,10 +22,8 @@ import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { COLORS } from '../constants/Colors';
-import { identifyMerchant } from '../lib/mapbox';
+import { LOCATION_TASK_NAME, checkLocation } from '../lib/location-task';
 import PremiumAlert from '../components/PremiumAlert';
-
-const LOCATION_TASK_NAME = 'background-location-task';
 
 interface UserCard {
   id: string;
@@ -187,163 +185,7 @@ export default function HomeScreen() {
     }
   };
 
-  // Helper to calculate distance
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // metres
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) *
-      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  // Log visit to history
-  const logVisit = async (userId: string, merchant: any) => {
-    try {
-      // 1. Check for recent visit (last 1 hour) to avoid spam
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: recentVisits } = await supabase
-        .from('location_history')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('merchant_name', merchant.name)
-        .gte('visited_at', oneHourAgo)
-        .limit(1);
-
-      if (recentVisits && recentVisits.length > 0) {
-        console.log('Skipping log: Recently visited', merchant.name);
-        return;
-      }
-
-      // 2. Insert new visit
-      const { error } = await supabase
-        .from('location_history')
-        .insert({
-          user_id: userId,
-          merchant_name: merchant.name,
-          category: merchant.category,
-          latitude: merchant.latitude,
-          longitude: merchant.longitude,
-        });
-
-      if (error) {
-        console.error('Supabase insert error:', error);
-      } else {
-        console.log('✅ Visit logged:', merchant.name);
-      }
-    } catch (error) {
-      console.error('Failed to log visit:', error);
-    }
-  };
-
-  // Logic to check location and get recommendation
-  const checkLocation = async (latitude: number, longitude: number, userId: string) => {
-    // 1. Identify Merchant via Mapbox (Dynamic)
-    const mapboxMerchant = await identifyMerchant(latitude, longitude);
-
-    if (mapboxMerchant) {
-      // Log the visit
-      logVisit(userId, mapboxMerchant);
-
-      // Find best card for this dynamic merchant
-      return await findBestCardForMerchant(userId, mapboxMerchant);
-    }
-
-    return { found: false };
-  };
-
-  const findBestCardForMerchant = async (userId: string, merchant: any) => {
-    const { data: userCards } = await supabase
-      .from('user_cards')
-      .select(`
-      credit_cards (
-        name,
-        rewards
-      )
-    `)
-      .eq('user_id', userId);
-
-    if (!userCards || userCards.length === 0) {
-      return {
-        found: true,
-        no_cards: true,
-        recommendation: {
-          merchant_name: merchant.name,
-          message: "Add cards to get rewards!"
-        }
-      };
-    }
-
-    // 4. Find best card
-    let bestCard: any = null;
-    let maxRate = 0;
-    const category = (merchant.category || 'general').toLowerCase();
-
-    userCards.forEach((item: any) => {
-      const card = item.credit_cards;
-      const rewards = card.rewards || {};
-      // Check specific category, then 'everything' or 'general'
-      const rate = rewards[category] || rewards['everything'] || rewards['general'] || 1;
-
-      if (rate > maxRate) {
-        maxRate = rate;
-        bestCard = card;
-      }
-    });
-
-    if (bestCard) {
-      return {
-        found: true,
-        recommendation: {
-          merchant_name: merchant.name,
-          message: `Use ${bestCard.name} for ${maxRate}% back!`
-        }
-      };
-    }
-
-    return { found: true, recommendation: { merchant_name: merchant.name, message: "Use your preferred card." } };
-  };
-
-  // Define background task
-  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
-    if (error) {
-      console.error('Background location error:', error);
-      return;
-    }
-    if (data) {
-      const { locations } = data;
-      const location = locations[0];
-
-      if (location) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-
-          const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
-
-          if (result?.found && 'recommendation' in result && !('no_cards' in result)) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: `💳 ${result.recommendation.merchant_name}`,
-                body: result.recommendation.message,
-                sound: true,
-                priority: Notifications.AndroidNotificationPriority.HIGH,
-              },
-              trigger: null,
-            });
-          }
-        } catch (error) {
-          console.error('Failed to check location:', error);
-        }
-      }
-    }
-  });
 
   const startBackgroundTracking = async () => {
     try {
@@ -597,11 +439,24 @@ export default function HomeScreen() {
             <Text style={styles.actionText}>Scan Location</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/trends')}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="stats-chart" size={24} color={COLORS.accent} />
+            </View>
+            <Text style={styles.actionText}>Insights</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/card-selection')}>
             <View style={styles.actionIcon}>
-              <Ionicons name="add" size={24} color={COLORS.textPrimary} />
+              <Ionicons
+                name={cards.length > 0 ? "wallet-outline" : "add"}
+                size={24}
+                color={COLORS.textPrimary}
+              />
             </View>
-            <Text style={styles.actionText}>Add Card</Text>
+            <Text style={styles.actionText}>
+              {cards.length > 0 ? "Manage Cards" : "Add Card"}
+            </Text>
           </TouchableOpacity>
         </View>
 
