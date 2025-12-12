@@ -20,9 +20,6 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "TapRight needs your location to recommend the best credit card based on where you are.",
         "NSLocationWhenInUseUsageDescription": "TapRight needs your location to recommend the best credit card based on where you are.",
         "UIBackgroundModes": [
-          "location",
-          "location",
-          "location",
           "location"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -66,13 +63,6 @@
         {
           "locationAlwaysAndWhenInUsePermission": "TapRight needs your location to recommend the best credit card based on where you are.",
           "locationWhenInUsePermission": "TapRight needs your location to recommend the best credit card based on where you are."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/tapright-logo.png",
-          "color": "#667eea"
         }
       ],
       "expo-font",
