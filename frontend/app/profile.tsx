@@ -73,6 +73,24 @@ export default function ProfileScreen() {
     const [user, setUser] = useState<any>(null);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
+    const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (logoutModalVisible) {
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [logoutModalVisible]);
 
     useEffect(() => {
         loadUserProfile();
@@ -93,28 +111,57 @@ export default function ProfileScreen() {
         }
     };
 
-    const handleLogout = async () => {
-        Alert.alert(
-            'Log Out',
-            'Are you sure you want to log out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Log Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await AsyncStorage.clear();
-                        await supabase.auth.signOut();
-                        router.replace('/');
-                    },
-                },
-            ]
-        );
+    const handleLogout = () => {
+        setLogoutModalVisible(true);
+    };
+
+    const confirmLogout = async () => {
+        setLogoutModalVisible(false);
+        // Small delay to let modal close smoothly
+        setTimeout(async () => {
+            await AsyncStorage.clear();
+            await supabase.auth.signOut();
+            router.replace('/');
+        }, 300);
     };
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" />
+
+            {/* Custom Logout Modal */}
+            {logoutModalVisible && (
+                <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+                    <TouchableOpacity
+                        style={styles.modalBackdrop}
+                        activeOpacity={1}
+                        onPress={() => setLogoutModalVisible(false)}
+                    />
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalIconContainer}>
+                            <Ionicons name="log-out" size={32} color={COLORS.error} />
+                        </View>
+                        <Text style={styles.modalTitle}>Log Out</Text>
+                        <Text style={styles.modalMessage}>Are you sure you want to log out of your account?</Text>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton]}
+                                onPress={() => setLogoutModalVisible(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.logoutConfirmButton]}
+                                onPress={confirmLogout}
+                            >
+                                <Text style={styles.logoutConfirmText}>Log Out</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Animated.View>
+            )}
 
             {/* Header */}
             <View style={styles.header}>
@@ -355,5 +402,92 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 2.5,
         elevation: 2,
+    },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 1000,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    modalContent: {
+        backgroundColor: COLORS.surface,
+        borderRadius: 32,
+        padding: 32,
+        width: '100%',
+        maxWidth: 340,
+        alignItems: 'center',
+        shadowColor: COLORS.shadow,
+        shadowOpacity: 0.25,
+        shadowRadius: 30,
+        elevation: 10,
+        shadowOffset: { width: 0, height: 10 },
+    },
+    modalIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#fee2e2',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        marginBottom: 32,
+        lineHeight: 24,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 16,
+        width: '100%',
+    },
+    modalButton: {
+        flex: 1,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cancelButton: {
+        backgroundColor: COLORS.surfaceSoft,
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+    },
+    logoutConfirmButton: {
+        backgroundColor: COLORS.error,
+        shadowColor: COLORS.error,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+    },
+    logoutConfirmText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: 'white',
     },
 });

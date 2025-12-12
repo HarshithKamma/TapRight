@@ -12,13 +12,11 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 
 
 
