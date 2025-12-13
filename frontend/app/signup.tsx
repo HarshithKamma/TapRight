@@ -19,7 +19,6 @@ import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
-
 import { COLORS } from '../constants/Colors';
 import PremiumAlert from '../components/PremiumAlert';
 
