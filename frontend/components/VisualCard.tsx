@@ -32,30 +32,30 @@ export default function VisualCard({ name, issuer, color, rewards, lastDigits = 
 
     const gradientColors = [primaryColor, darken(primaryColor, 40)];
 
+    const formatCategory = (cat: string) => {
+        return cat.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
     const getPrimaryReward = () => {
         // If a specific category is highlighted (e.g. from recommendation engine), show that first
         if (highlightCategory) {
-            // Handle aliases or direct match
             const cat = highlightCategory.toLowerCase();
             let rate = rewards[cat] || 0;
 
-            // Simple alias fallback if direct match fails
             if (!rate) {
-                if (cat === 'rent') rate = rewards['rent'] || 1; // Bilt specific fallback
+                if (cat === 'rent') rate = rewards['rent'] || 1;
                 else if (cat === 'everything') rate = rewards['everything'] || rewards['general'] || 1;
             }
 
-            return `${rate}% ${highlightCategory}`;
+            return `${rate}% ${formatCategory(highlightCategory)}`;
         }
 
         const entries = Object.entries(rewards);
         if (entries.length === 0) return '';
-        // Prioritize 'everything' if it's the only one, otherwise find max
         if (rewards.everything && entries.length === 1) return `${rewards.everything}% All`;
 
-        // Find highest category
         const max = entries.reduce((a, b) => a[1] > b[1] ? a : b);
-        return `${max[1]}% ${max[0].charAt(0).toUpperCase() + max[0].slice(1)}`;
+        return `${max[1]}% ${formatCategory(max[0])}`;
     };
 
     return (
@@ -86,7 +86,7 @@ export default function VisualCard({ name, issuer, color, rewards, lastDigits = 
 
                 {/* Card Footer: Name & Reward Badge */}
                 <View style={styles.footer}>
-                    <View>
+                    <View style={{ flex: 1, marginRight: 12 }}>
                         <Text style={styles.label}>CARDHOLDER</Text>
                         <Text style={styles.name} numberOfLines={1}>{name.toUpperCase()}</Text>
                     </View>
@@ -94,7 +94,7 @@ export default function VisualCard({ name, issuer, color, rewards, lastDigits = 
                     {/* Top Reward Badge */}
                     <View style={styles.rewardBadge}>
                         <Ionicons name="star" size={10} color="black" />
-                        <Text style={styles.rewardText}>{getPrimaryReward()}</Text>
+                        <Text style={styles.rewardText} numberOfLines={1} ellipsizeMode="tail">{getPrimaryReward()}</Text>
                     </View>
                 </View>
             </LinearGradient>
@@ -199,11 +199,14 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 12,
         gap: 4,
+        maxWidth: '45%', // Limit width so it doesn't overflow
+        justifyContent: 'flex-end',
     },
     rewardText: {
         fontSize: 12,
         fontWeight: '800',
         color: 'black',
+        flexShrink: 1, // Allow text to shrink/truncate
     },
     networkLogo: {
         position: 'absolute',
