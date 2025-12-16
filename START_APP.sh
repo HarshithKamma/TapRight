@@ -1,6 +1,8 @@
 #!/bin/bash
 echo "Starting TapRight App..."
 echo "--------------------------------"
+echo "Connecting to Supabase..."
+echp "Unloading environment variables..."
 
 # Start Frontend
 cd frontend
