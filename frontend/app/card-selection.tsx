@@ -100,13 +100,29 @@ export default function WalletEditorScreen() {
     );
   };
 
+  // Helper to sync card names to profiles table
+  const syncProfileCardNames = async (userId: string) => {
+    try {
+      const { data: cards } = await supabase
+        .from('user_cards')
+        .select('credit_cards(name)')
+        .eq('user_id', userId);
+
+      if (cards) {
+        const names = cards.map((c: any) => c.credit_cards?.name).filter(Boolean);
+        await supabase.from('profiles').update({ card_names: names }).eq('id', userId);
+      }
+    } catch (err) {
+      console.warn('Failed to sync card names to profile:', err);
+    }
+  };
+
   const handleAddCard = async (card: CreditCard) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Optimistic Update: Use functional update to prevent race conditions
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUserCards(prev => [...prev, card]);
-    // setAddModalVisible(false); // REMOVED FOR MULTI-SELECT
     // setSearchQuery(''); // REMOVED: Keep search results for rapid multi-add
 
     try {
@@ -121,6 +137,10 @@ export default function WalletEditorScreen() {
         });
 
       if (error) throw error;
+
+      // Sync names to profile
+      await syncProfileCardNames(user.id);
+
     } catch (error: any) {
       console.error('Failed to add card:', error);
       Alert.alert('Save Failed', error.message || 'Could not save change.');
@@ -155,6 +175,9 @@ export default function WalletEditorScreen() {
 
       if (error) throw error;
       console.log('Deleted card:', cardToRemove.name);
+
+      // Sync names to profile
+      await syncProfileCardNames(user.id);
 
     } catch (error: any) {
       console.error('Failed to remove card:', error);

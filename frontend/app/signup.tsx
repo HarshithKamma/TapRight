@@ -291,6 +291,7 @@ export default function SignupScreen() {
                   placeholderTextColor={COLORS.placeholder}
                   onChangeText={updateFormValue('phone')}
                   keyboardType="phone-pad"
+                  maxLength={10}
                 />
               </View>
 
