@@ -76,6 +76,7 @@ const SettingItem = ({ icon, title, value, onValueChange, type = 'toggle' }: any
 export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
+    const [cardNames, setCardNames] = useState<string[]>([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
     const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -110,6 +111,16 @@ export default function ProfileScreen() {
                     email: user.email,
                     initials: (user.user_metadata?.full_name || 'U').charAt(0).toUpperCase(),
                 });
+
+                // Fetch cards
+                const { data: cards } = await supabase
+                    .from('user_cards')
+                    .select('credit_cards(name)')
+                    .eq('user_id', user.id);
+
+                if (cards) {
+                    setCardNames(cards.map((c: any) => c.credit_cards?.name).filter(Boolean));
+                }
             }
         } catch (error) {
             console.error('Error loading profile:', error);
@@ -209,6 +220,32 @@ export default function ProfileScreen() {
                     >
                         <Text style={styles.editButtonText}>Edit Profile</Text>
                     </TouchableOpacity>
+                </View>
+
+                {/* Wallet Summary */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>My Wallet ({cardNames.length})</Text>
+                    <View style={styles.sectionContent}>
+                        {cardNames.length > 0 ? (
+                            cardNames.map((name, index) => (
+                                <React.Fragment key={index}>
+                                    <View style={styles.settingItem}>
+                                        <View style={styles.settingLeft}>
+                                            <View style={[styles.iconContainer, { backgroundColor: COLORS.surfaceHighlight }]}>
+                                                <Ionicons name="card" size={16} color={COLORS.textSecondary} />
+                                            </View>
+                                            <Text style={styles.settingTitle}>{name}</Text>
+                                        </View>
+                                    </View>
+                                    {index < cardNames.length - 1 && <View style={styles.separator} />}
+                                </React.Fragment>
+                            ))
+                        ) : (
+                            <View style={styles.settingItem}>
+                                <Text style={[styles.settingTitle, { color: COLORS.textSecondary }]}>No cards added</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
                 {/* Preferences Section */}
