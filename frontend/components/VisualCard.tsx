@@ -11,9 +11,10 @@ interface VisualCardProps {
     rewards: { [key: string]: number };
     lastDigits?: string;
     scale?: number;
+    highlightCategory?: string;
 }
 
-export default function VisualCard({ name, issuer, color, rewards, lastDigits = '••••', scale = 1 }: VisualCardProps) {
+export default function VisualCard({ name, issuer, color, rewards, lastDigits = '••••', scale = 1, highlightCategory }: VisualCardProps) {
     // Generate gradient colors based on the primary color
     // We lighten/darken the provided hex to create a gradient
     // For now, let's use the provided color as the base and a slightly darker version for the bottom right
@@ -32,6 +33,21 @@ export default function VisualCard({ name, issuer, color, rewards, lastDigits = 
     const gradientColors = [primaryColor, darken(primaryColor, 40)];
 
     const getPrimaryReward = () => {
+        // If a specific category is highlighted (e.g. from recommendation engine), show that first
+        if (highlightCategory) {
+            // Handle aliases or direct match
+            const cat = highlightCategory.toLowerCase();
+            let rate = rewards[cat] || 0;
+
+            // Simple alias fallback if direct match fails
+            if (!rate) {
+                if (cat === 'rent') rate = rewards['rent'] || 1; // Bilt specific fallback
+                else if (cat === 'everything') rate = rewards['everything'] || rewards['general'] || 1;
+            }
+
+            return `${rate}% ${highlightCategory}`;
+        }
+
         const entries = Object.entries(rewards);
         if (entries.length === 0) return '';
         // Prioritize 'everything' if it's the only one, otherwise find max

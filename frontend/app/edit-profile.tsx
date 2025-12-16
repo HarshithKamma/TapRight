@@ -19,6 +19,10 @@ export default function EditProfileScreen() {
     const router = useRouter();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [monthlyRent, setMonthlyRent] = useState('');
+    const [monthlyExpenses, setMonthlyExpenses] = useState('');
+    const [cardPayments, setCardPayments] = useState('');
+    const [carPayments, setCarPayments] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -30,6 +34,19 @@ export default function EditProfileScreen() {
         if (user) {
             setName(user.user_metadata?.full_name || '');
             setEmail(user.email || '');
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('monthly_rent, monthly_expenses, card_payments, car_payments')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                setMonthlyRent(profile.monthly_rent?.toString() || '');
+                setMonthlyExpenses(profile.monthly_expenses?.toString() || '');
+                setCardPayments(profile.card_payments?.toString() || '');
+                setCarPayments(profile.car_payments?.toString() || '');
+            }
         }
     };
 
@@ -41,11 +58,27 @@ export default function EditProfileScreen() {
 
         setLoading(true);
         try {
-            const { error } = await supabase.auth.updateUser({
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No user found");
+
+            // 1. Update Auth Metadata (Name)
+            const { error: authError } = await supabase.auth.updateUser({
                 data: { full_name: name },
             });
+            if (authError) throw authError;
 
-            if (error) throw error;
+            // 2. Update Financial Profile
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    monthly_rent: monthlyRent ? parseFloat(monthlyRent) : null,
+                    monthly_expenses: monthlyExpenses ? parseFloat(monthlyExpenses) : null,
+                    card_payments: cardPayments ? parseFloat(cardPayments) : null,
+                    car_payments: carPayments ? parseFloat(carPayments) : null,
+                })
+                .eq('id', user.id);
+
+            if (profileError) throw profileError;
 
             Alert.alert('Success', 'Profile updated successfully', [
                 { text: 'OK', onPress: () => router.back() }
@@ -90,6 +123,59 @@ export default function EditProfileScreen() {
                         <Text style={{ color: COLORS.textSecondary }}>{email}</Text>
                     </View>
                     <Text style={styles.helperText}>Email cannot be changed</Text>
+                </View>
+
+                <View style={styles.divider} />
+                <Text style={styles.sectionTitle}>Financial Profile</Text>
+
+                <View style={styles.row}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Monthly Rent ($)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={monthlyRent}
+                            onChangeText={setMonthlyRent}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.textSecondary}
+                            keyboardType="numeric"
+                        />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Card Payments ($)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={cardPayments}
+                            onChangeText={setCardPayments}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.textSecondary}
+                            keyboardType="numeric"
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.row}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Expenses ($)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={monthlyExpenses}
+                            onChangeText={setMonthlyExpenses}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.textSecondary}
+                            keyboardType="numeric"
+                        />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Car Payments ($)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={carPayments}
+                            onChangeText={setCarPayments}
+                            placeholder="0"
+                            placeholderTextColor={COLORS.textSecondary}
+                            keyboardType="numeric"
+                        />
+                    </View>
                 </View>
 
                 <TouchableOpacity
@@ -151,6 +237,21 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         borderWidth: 1,
         borderColor: COLORS.surfaceHighlight,
+    },
+    row: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: COLORS.surfaceHighlight,
+        marginVertical: 12,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: COLORS.textPrimary,
+        marginBottom: 8,
     },
     disabledInput: {
         backgroundColor: COLORS.surfaceSoft,

@@ -137,80 +137,99 @@ export default function TrendsScreen() {
 
             if (!allCards) return;
 
-            // 6. Generate Recommendations
+            // 6. Generate Recommendations (Diversity Prioritized)
             const targetCategories = sortedTrends
                 .filter(t => t.category !== 'general')
                 .slice(0, 3)
                 .map(t => t.category);
 
-            let potentialRecs: RecommendedCard[] = [];
+            let finalRecs: RecommendedCard[] = [];
+            const recommendedCardIds = new Set<string>();
 
-            allCards.forEach((card: any) => {
-                if (userCardIds.has(card.id)) return; // Skip owned cards
+            // Strategy 0: Bilt for Renters (Priority)
+            // If user pays significant rent (> $1000) and doesn't own Bilt, recommend it first.
+            if (profileData && (profileData.monthly_rent || 0) > 1000) {
+                const biltCard = allCards.find((c: any) =>
+                    c.name.toLowerCase().includes('bilt') ||
+                    c.issuer.toLowerCase().includes('wells fargo') && c.name.toLowerCase().includes('rent')
+                );
 
-                // Financial Guard Rails applied here:
-                // Rule 1: Don't recommend High Annual Fee cards (> $100) if monthly spend < $2000
-                if (card.annual_fee > 100 && totalMonthlySpend > 0 && totalMonthlySpend < 2000) {
-                    return;
+                if (biltCard && !userCardIds.has(biltCard.id)) {
+                    finalRecs.push({
+                        id: biltCard.id,
+                        name: biltCard.name,
+                        issuer: biltCard.issuer,
+                        color: biltCard.color,
+                        rewards: biltCard.rewards,
+                        matchRate: 1, // 1% on Rent (points are valuable, but strictly it's 1x)
+                        matchCategory: 'Rent'
+                    });
+                    recommendedCardIds.add(biltCard.id);
                 }
+            }
 
-                // Rule 2: Don't recommend any Annual Fee cards if spend is very low (< $800)
-                if (card.annual_fee > 0 && totalMonthlySpend > 0 && totalMonthlySpend < 800) {
-                    return;
+            // Strategy 1: Find the single best card for each Top Category
+            targetCategories.forEach(cat => {
+                if (finalRecs.length >= 3) return;
+
+                let bestCard: any = null;
+                let bestRate = 0;
+
+                allCards.forEach((card: any) => {
+                    if (userCardIds.has(card.id)) return;
+                    if (recommendedCardIds.has(card.id)) return; // Don't recommend same card twice
+
+                    // Financial Guards
+                    if (card.annual_fee > 100 && totalMonthlySpend > 0 && totalMonthlySpend < 2000) return;
+                    if (card.annual_fee > 0 && totalMonthlySpend > 0 && totalMonthlySpend < 800) return;
+
+                    const rate = getSpecificRewardRate(card.rewards || {}, cat);
+                    if (rate > 2 && rate > bestRate) {
+                        bestRate = rate;
+                        bestCard = card;
+                    }
+                });
+
+                if (bestCard) {
+                    finalRecs.push({
+                        id: bestCard.id,
+                        name: bestCard.name,
+                        issuer: bestCard.issuer,
+                        color: bestCard.color,
+                        rewards: bestCard.rewards,
+                        matchRate: bestRate,
+                        matchCategory: capitalize(cat)
+                    });
+                    recommendedCardIds.add(bestCard.id);
                 }
+            });
 
-                const rewards = card.rewards || {};
+            // Strategy 2: Fill remaining slots with "Everything" cards (Catch-all)
+            if (finalRecs.length < 3) {
+                allCards.forEach((card: any) => {
+                    if (finalRecs.length >= 3) return;
+                    if (userCardIds.has(card.id)) return;
+                    if (recommendedCardIds.has(card.id)) return;
 
-                // A. Check for High Specific Matches in Target Categories
-                targetCategories.forEach(cat => {
-                    const specificRate = getSpecificRewardRate(rewards, cat);
-                    // Threshold: Recommend if rate is significantly high (> 2%)
-                    if (specificRate > 2) {
-                        potentialRecs.push({
+                    // Financial Guards
+                    if (card.annual_fee > 100 && totalMonthlySpend > 0 && totalMonthlySpend < 2000) return;
+                    if (card.annual_fee > 0 && totalMonthlySpend > 0 && totalMonthlySpend < 800) return;
+
+                    const baseRate = card.rewards?.['everything'] || card.rewards?.['general'] || 0;
+                    if (baseRate >= 2) {
+                        finalRecs.push({
                             id: card.id,
                             name: card.name,
                             issuer: card.issuer,
                             color: card.color,
                             rewards: card.rewards,
-                            matchRate: specificRate,
-                            matchCategory: capitalize(cat)
+                            matchRate: baseRate,
+                            matchCategory: 'Everything'
                         });
+                        recommendedCardIds.add(card.id);
                     }
                 });
-
-                // B. Check for High Base Rate (Fallback)
-                const baseRate = rewards['everything'] || rewards['general'] || 0;
-                if (baseRate >= 2) {
-                    potentialRecs.push({
-                        id: card.id,
-                        name: card.name,
-                        issuer: card.issuer,
-                        color: card.color,
-                        rewards: card.rewards,
-                        matchRate: baseRate,
-                        matchCategory: 'Everything'
-                    });
-                }
-            });
-
-            // Deduplicate: Keep the instance with the highest match rate for each card
-            const uniqueRecs = new Map<string, RecommendedCard>();
-            potentialRecs.forEach(rec => {
-                const existing = uniqueRecs.get(rec.id);
-                if (!existing) {
-                    uniqueRecs.set(rec.id, rec);
-                } else {
-                    if (rec.matchRate > existing.matchRate) {
-                        uniqueRecs.set(rec.id, rec);
-                    } else if (rec.matchRate === existing.matchRate && rec.matchCategory !== 'Everything') {
-                        uniqueRecs.set(rec.id, rec);
-                    }
-                }
-            });
-
-            const finalRecs = Array.from(uniqueRecs.values())
-                .sort((a, b) => b.matchRate - a.matchRate)
-                .slice(0, 3); // Top 3 recommendations
+            }
 
             setRecommendations(finalRecs);
 
@@ -309,6 +328,7 @@ export default function TrendsScreen() {
                                         color={card.color}
                                         rewards={card.rewards}
                                         scale={0.95}
+                                        highlightCategory={card.matchCategory}
                                     />
                                 </View>
                             ))}
