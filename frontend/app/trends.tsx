@@ -93,7 +93,23 @@ export default function TrendsScreen() {
 
             if (historyError) throw historyError;
 
-            // 2. Calculate Category Counts
+            // 2. Fetch User Profile for Financial Context
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('monthly_rent, monthly_expenses, card_payments, car_payments')
+                .eq('id', user.id)
+                .single();
+
+            // Calculate estimated monthly spend
+            let totalMonthlySpend = 0;
+            if (profileData) {
+                totalMonthlySpend = (profileData.monthly_rent || 0) +
+                    (profileData.monthly_expenses || 0) +
+                    (profileData.card_payments || 0) +
+                    (profileData.car_payments || 0);
+            }
+
+            // 3. Calculate Category Counts
             const categoryCounts: { [key: string]: number } = {};
             historyData?.forEach((visit: any) => {
                 const cat = visit.category || 'general';
@@ -106,7 +122,7 @@ export default function TrendsScreen() {
 
             setTrends(sortedTrends);
 
-            // 3. Fetch User's Current Cards
+            // 4. Fetch User's Current Cards
             const { data: userCardsData } = await supabase
                 .from('user_cards')
                 .select('card_id')
@@ -114,15 +130,14 @@ export default function TrendsScreen() {
 
             const userCardIds = new Set((userCardsData || []).map((item: any) => item.card_id));
 
-            // 4. Fetch All Available Cards
+            // 5. Fetch All Available Cards
             const { data: allCards } = await supabase
                 .from('credit_cards')
                 .select('*');
 
             if (!allCards) return;
 
-            // 5. Generate Recommendations
-            // Identify target categories (Top 3, EXCLUDING 'general')
+            // 6. Generate Recommendations
             const targetCategories = sortedTrends
                 .filter(t => t.category !== 'general')
                 .slice(0, 3)
@@ -132,6 +147,17 @@ export default function TrendsScreen() {
 
             allCards.forEach((card: any) => {
                 if (userCardIds.has(card.id)) return; // Skip owned cards
+
+                // Financial Guard Rails applied here:
+                // Rule 1: Don't recommend High Annual Fee cards (> $100) if monthly spend < $2000
+                if (card.annual_fee > 100 && totalMonthlySpend > 0 && totalMonthlySpend < 2000) {
+                    return;
+                }
+
+                // Rule 2: Don't recommend any Annual Fee cards if spend is very low (< $800)
+                if (card.annual_fee > 0 && totalMonthlySpend > 0 && totalMonthlySpend < 800) {
+                    return;
+                }
 
                 const rewards = card.rewards || {};
 
@@ -153,7 +179,6 @@ export default function TrendsScreen() {
                 });
 
                 // B. Check for High Base Rate (Fallback)
-                // If a card offers >= 2% on everything, it's a solid recommendation
                 const baseRate = rewards['everything'] || rewards['general'] || 0;
                 if (baseRate >= 2) {
                     potentialRecs.push({
@@ -163,7 +188,7 @@ export default function TrendsScreen() {
                         color: card.color,
                         rewards: card.rewards,
                         matchRate: baseRate,
-                        matchCategory: 'Everything' // Explicit label
+                        matchCategory: 'Everything'
                     });
                 }
             });
@@ -172,7 +197,6 @@ export default function TrendsScreen() {
             const uniqueRecs = new Map<string, RecommendedCard>();
             potentialRecs.forEach(rec => {
                 const existing = uniqueRecs.get(rec.id);
-                // If new one is better, or same card but "Specific" category vs "Everything", prefer specific
                 if (!existing) {
                     uniqueRecs.set(rec.id, rec);
                 } else {
