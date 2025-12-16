@@ -24,6 +24,8 @@ import Constants from 'expo-constants';
 import { COLORS } from '../constants/Colors';
 import { LOCATION_TASK_NAME, checkLocation } from '../lib/location-task';
 import PremiumAlert from '../components/PremiumAlert';
+import * as Haptics from 'expo-haptics';
+import VisualCard from '../components/VisualCard';
 
 interface UserCard {
   id: string;
@@ -73,7 +75,10 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
   });
 
   return (
-    <Pressable onPress={onValueChange}>
+    <Pressable onPress={() => {
+      Haptics.selectionAsync();
+      onValueChange();
+    }}>
       <Animated.View style={[styles.switchTrack, { backgroundColor }]}>
         <Animated.View style={[styles.switchThumb, { transform: [{ translateX }] }]} />
       </Animated.View>
@@ -273,6 +278,7 @@ export default function HomeScreen() {
   };
 
   const toggleTracking = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (trackingEnabled) {
       await stopBackgroundTracking();
     } else {
@@ -281,6 +287,7 @@ export default function HomeScreen() {
   };
 
   const checkCurrentLocation = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Prevent duplicate scans
     if (isScanning.current) {
       return;
@@ -450,14 +457,20 @@ export default function HomeScreen() {
             <Text style={styles.actionText}>Scan Location</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/trends')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/trends');
+          }}>
             <View style={styles.actionIcon}>
               <Ionicons name="stats-chart" size={24} color={COLORS.accent} />
             </View>
             <Text style={styles.actionText}>Insights</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/card-selection')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/card-selection');
+          }}>
             <View style={styles.actionIcon}>
               <Ionicons
                 name={cards.length > 0 ? "wallet-outline" : "add"}
@@ -483,16 +496,21 @@ export default function HomeScreen() {
           ) : (
             <View style={styles.cardList}>
               {cards.map((card) => (
-                <View key={card.id} style={styles.cardItem}>
-                  <View style={[styles.cardIcon, { backgroundColor: card.card_color || COLORS.surfaceHighlight }]} />
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardName}>{card.card_name}</Text>
-                    <Text style={styles.cardIssuer}>{card.card_issuer}</Text>
-                  </View>
-                  <View style={styles.cardRewardBadge}>
-                    <Text style={styles.cardRewardText}>{getRewardsSummary(card.rewards).split(',')[0]}</Text>
-                  </View>
-                </View>
+                <TouchableOpacity
+                  key={card.id}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    // Future: Open card details
+                  }}
+                >
+                  <VisualCard
+                    name={card.card_name}
+                    issuer={card.card_issuer}
+                    color={card.card_color}
+                    rewards={card.rewards}
+                  />
+                </TouchableOpacity>
               ))}
             </View>
           )}

@@ -10,7 +10,9 @@ import {
     Animated,
     Easing,
     Pressable,
+    Linking,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -41,7 +43,10 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
     });
 
     return (
-        <Pressable onPress={() => onValueChange(!value)}>
+        <Pressable onPress={() => {
+            Haptics.selectionAsync();
+            onValueChange(!value);
+        }}>
             <Animated.View style={[styles.switchTrack, { backgroundColor }]}>
                 <Animated.View style={[styles.switchThumb, { transform: [{ translateX }] }]} />
             </Animated.View>
@@ -112,6 +117,7 @@ export default function ProfileScreen() {
     };
 
     const handleLogout = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setLogoutModalVisible(true);
     };
 
@@ -123,6 +129,20 @@ export default function ProfileScreen() {
             await supabase.auth.signOut();
             router.replace('/');
         }, 300);
+    };
+
+    const handleHelpCenter = async () => {
+        const url = 'mailto:info@tapright.app';
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+            await Linking.openURL(url);
+        } else {
+            Alert.alert('Error', 'Could not open email client.');
+        }
+    };
+
+    const handlePrivacyPolicy = () => {
+        router.push('/privacy-policy');
     };
 
     return (
@@ -182,7 +202,10 @@ export default function ProfileScreen() {
                     <Text style={styles.userEmail}>{user?.email}</Text>
                     <TouchableOpacity
                         style={styles.editButton}
-                        onPress={() => router.push('/edit-profile')}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            router.push('/edit-profile');
+                        }}
                     >
                         <Text style={styles.editButtonText}>Edit Profile</Text>
                     </TouchableOpacity>
@@ -212,11 +235,11 @@ export default function ProfileScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Support</Text>
                     <View style={styles.sectionContent}>
-                        <TouchableOpacity style={styles.menuItem}>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleHelpCenter}>
                             <SettingItem icon="help-circle-outline" title="Help Center" type="link" />
                         </TouchableOpacity>
                         <View style={styles.separator} />
-                        <TouchableOpacity style={styles.menuItem}>
+                        <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPolicy}>
                             <SettingItem icon="shield-checkmark-outline" title="Privacy Policy" type="link" />
                         </TouchableOpacity>
                     </View>

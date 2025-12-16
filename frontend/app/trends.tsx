@@ -28,6 +28,21 @@ interface RecommendedCard {
     matchCategory: string;
 }
 
+import DonutChart, { getCategoryColor } from '../components/DonutChart';
+import VisualCard from '../components/VisualCard';
+
+// Helper to map category to icon
+const getCategoryIcon = (category: string) => {
+    const cat = category.toLowerCase();
+    if (cat.includes('dining') || cat.includes('restaurant')) return 'restaurant';
+    if (cat.includes('grocery') || cat.includes('market')) return 'cart';
+    if (cat.includes('travel') || cat.includes('flight')) return 'airplane';
+    if (cat.includes('gas') || cat.includes('fuel')) return 'car';
+    if (cat.includes('shopping')) return 'bag-handle';
+    if (cat.includes('entertainment') || cat.includes('movie')) return 'film';
+    return 'pricetag';
+};
+
 export default function TrendsScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -164,9 +179,6 @@ export default function TrendsScreen() {
                     if (rec.matchRate > existing.matchRate) {
                         uniqueRecs.set(rec.id, rec);
                     } else if (rec.matchRate === existing.matchRate && rec.matchCategory !== 'Everything') {
-                        // Prefer "3% on Dining" over "3% on Everything" for clarity context if rates equal?
-                        // Actually, "Everything" is stronger usually, but "Dining" explains WHY we picked it based on trends.
-                        // Let's stick to highest rate.
                         uniqueRecs.set(rec.id, rec);
                     }
                 }
@@ -208,66 +220,75 @@ export default function TrendsScreen() {
                 {/* Trends Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Where You Shop</Text>
-                    <Text style={styles.sectionSubtitle}>Based on your visit history (last 30 days)</Text>
+                    <Text style={styles.sectionSubtitle}>Last 30 Days Activity</Text>
 
                     {trends.length === 0 ? (
                         <View style={styles.emptyState}>
                             <Text style={styles.emptyText}>No location history yet.</Text>
-                            <Text style={styles.emptySubText}>Enable background tracking on the home screen to start gathering insights.</Text>
+                            <Text style={styles.emptySubText}>Enable background tracking to start.</Text>
                         </View>
                     ) : (
-                        <View style={styles.trendsList}>
-                            {trends.map((trend, index) => (
-                                <View key={index} style={styles.trendItem}>
-                                    <View style={styles.trendInfo}>
-                                        <Text style={styles.trendName}>{capitalize(trend.category)}</Text>
-                                        <Text style={styles.trendCount}>{trend.count} visits</Text>
-                                    </View>
-                                    <View style={styles.progressBar}>
-                                        <View style={[styles.progressFill, { width: `${Math.min((trend.count / trends[0].count) * 100, 100)}%` }]} />
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
+                        <>
+                            <DonutChart data={trends} />
+
+                            <View style={styles.trendsGrid}>
+                                {trends.map((trend, index) => {
+                                    const color = getCategoryColor(trend.category);
+                                    const icon = getCategoryIcon(trend.category);
+
+                                    return (
+                                        <View key={index} style={[styles.trendCard, { borderColor: color }]}>
+                                            <View style={styles.trendHeader}>
+                                                <View style={[styles.iconBox, { backgroundColor: color }]}>
+                                                    <Ionicons name={icon as any} size={14} color="white" />
+                                                </View>
+                                                <Text style={styles.trendCount}>{trend.count}</Text>
+                                            </View>
+                                            <Text style={styles.trendName}>{capitalize(trend.category)}</Text>
+                                            <View style={styles.progressBar}>
+                                                <View style={[styles.progressFill, {
+                                                    width: `${Math.min((trend.count / trends[0].count) * 100, 100)}%`,
+                                                    backgroundColor: color
+                                                }]} />
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </>
                     )}
                 </View>
 
                 {/* Recommendations Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Smart Recommendations</Text>
-                    <Text style={styles.sectionSubtitle}>Cards you don't own that match your habits</Text>
+                    <Text style={styles.sectionSubtitle}>Cards that match your habits</Text>
 
                     {recommendations.length === 0 ? (
                         <View style={styles.emptyState}>
                             <Ionicons name="card-outline" size={48} color={COLORS.textSecondary} />
-                            <Text style={styles.emptyText}>No recommendations currently.</Text>
-                            {trends.length > 0 ? (
-                                <Text style={styles.emptySubText}>Your current wallet already covers your top categories well!</Text>
-                            ) : (
-                                <Text style={styles.emptySubText}>Visit more places to get personalized suggestions.</Text>
-                            )}
+                            <Text style={styles.emptyText}>No recommendations.</Text>
                         </View>
                     ) : (
-                        recommendations.map(card => (
-                            <View key={card.id} style={styles.cardItem}>
-                                <View style={[styles.cardColor, { backgroundColor: card.color }]} />
-                                <View style={styles.cardContent}>
-                                    <View style={styles.cardHeader}>
-                                        <Text style={styles.cardName}>{card.name}</Text>
-                                        <View style={styles.matchBadge}>
-                                            <Ionicons name="trending-up" size={14} color={COLORS.accent} />
-                                            <Text style={styles.matchText}>
-                                                {card.matchRate}% on {card.matchCategory}
-                                            </Text>
-                                        </View>
+                        <View style={styles.recommendationList}>
+                            {recommendations.map(card => (
+                                <View key={card.id}>
+                                    <View style={styles.matchTag}>
+                                        <Ionicons name="trending-up" size={14} color="white" />
+                                        <Text style={styles.matchTagText}>
+                                            Match: {card.matchCategory} ({card.matchRate}%)
+                                        </Text>
                                     </View>
-                                    <Text style={styles.cardIssuer}>{card.issuer}</Text>
+                                    <VisualCard
+                                        name={card.name}
+                                        issuer={card.issuer}
+                                        color={card.color}
+                                        rewards={card.rewards}
+                                        scale={0.95}
+                                    />
                                 </View>
-                                <View style={styles.cardAction}>
-                                    <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-                                </View>
-                            </View>
-                        ))
+                            ))}
+                        </View>
                     )}
                 </View>
 
@@ -370,19 +391,20 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
     },
     trendCount: {
-        fontSize: 14,
-        color: COLORS.textSecondary,
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
     },
     progressBar: {
-        height: 6,
+        height: 4,
         backgroundColor: COLORS.surfaceHighlight,
-        borderRadius: 3,
+        borderRadius: 2,
         overflow: 'hidden',
+        marginTop: 12,
     },
     progressFill: {
         height: '100%',
-        backgroundColor: COLORS.accent,
-        borderRadius: 3,
+        borderRadius: 2,
     },
     cardItem: {
         flexDirection: 'row',
@@ -439,5 +461,59 @@ const styles = StyleSheet.create({
     },
     cardAction: {
         paddingRight: 16,
+    },
+    trendsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginTop: 16,
+    },
+    trendCard: {
+        width: '48%',
+        backgroundColor: COLORS.surface,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: COLORS.surfaceHighlight,
+        shadowColor: COLORS.shadow,
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    trendHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    iconBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    recommendationList: {
+        gap: 24,
+    },
+    matchTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.success,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 100,
+        marginBottom: -12, // Overlap the card slightly
+        marginLeft: 12,
+        zIndex: 10,
+        gap: 6,
+        borderWidth: 2,
+        borderColor: COLORS.background, // Stroke effect
+    },
+    matchTagText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '700',
     }
 });
