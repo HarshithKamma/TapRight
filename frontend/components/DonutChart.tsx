@@ -32,6 +32,10 @@ export default function DonutChart({ data, size = 220, thickness = 24 }: DonutCh
     if (data.length === 0) return null;
 
     const total = data.reduce((sum, item) => sum + item.count, 0);
+
+    // Prevent NaN errors if total is 0
+    if (total === 0) return null;
+
     const animValue = useRef(new Animated.Value(0)).current;
     const scaleValue = useRef(new Animated.Value(0)).current;
 

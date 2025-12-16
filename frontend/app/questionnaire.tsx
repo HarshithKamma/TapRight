@@ -29,7 +29,7 @@ export default function QuestionnaireScreen() {
   const logoSource = require('../assets/images/tapright-logo.png');
 
   const handleSkip = () => {
-    router.replace('/card-selection');
+    router.replace('/card-selection?onboarding=true');
   };
 
   const handleSubmit = async () => {
@@ -53,7 +53,7 @@ export default function QuestionnaireScreen() {
 
       if (error) throw error;
 
-      router.replace('/card-selection');
+      router.replace('/card-selection?onboarding=true');
     } catch (error: any) {
       console.error('Failed to save questionnaire:', error);
       Alert.alert('Error', 'Failed to save questionnaire');

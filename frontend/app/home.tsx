@@ -242,9 +242,9 @@ export default function HomeScreen() {
       const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
       if (bgStatus === 'granted') {
         await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 60000, // 1 minute
-          distanceInterval: 100, // 100 meters
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000, // 5 seconds (Low Latency)
+          distanceInterval: 25, // 25 meters (Responsive)
           foregroundService: {
             notificationTitle: 'TapRight Active',
             notificationBody: 'Finding best card recommendations for you',

@@ -13,7 +13,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
@@ -39,6 +39,7 @@ interface CreditCard {
 
 export default function WalletEditorScreen() {
   const router = useRouter();
+  const { onboarding } = useLocalSearchParams();
   const [userCards, setUserCards] = useState<CreditCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCard[]>([]);
 
@@ -105,8 +106,8 @@ export default function WalletEditorScreen() {
     // Optimistic Update: Use functional update to prevent race conditions
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUserCards(prev => [...prev, card]);
-    setAddModalVisible(false);
-    setSearchQuery('');
+    // setAddModalVisible(false); // REMOVED FOR MULTI-SELECT
+    // setSearchQuery(''); // REMOVED: Keep search results for rapid multi-add
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -178,7 +179,16 @@ export default function WalletEditorScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>My Wallet</Text>
-        <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={() => {
+            if (onboarding === 'true') {
+              router.replace('/home');
+            } else {
+              router.back();
+            }
+          }}
+        >
           <Ionicons name="checkmark" size={20} color="white" />
         </TouchableOpacity>
       </View>
