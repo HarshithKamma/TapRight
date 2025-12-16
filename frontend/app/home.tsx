@@ -125,170 +125,32 @@ export default function HomeScreen() {
     setAlertVisible(true);
   };
 
-  // Auto-refresh when returning to this screen (e.g. from Wallet Editor)
-  useFocusEffect(
-    useCallback(() => {
-      loadUserData();
-    }, [])
-  );
+  const handleLocationResponse = async (data: any) => {
+    if (data.found && data.recommendation) {
+      const rec = data.recommendation;
 
-  useEffect(() => {
-    registerForPushNotifications();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      // Restore tracking state
-      const savedTracking = await AsyncStorage.getItem('trackingEnabled');
-      if (savedTracking === 'true') {
-        setTrackingEnabled(true);
-        // We don't automatically restart it here to avoid the popup loop effectively,
-        // unless you want it to persist. 
-        // Better: Only start if user explicitly turns it on, OR check if already running.
-        const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-        if (isRegistered) {
-          setTrackingEnabled(true);
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `💳 ${rec.merchant_name}`,
+              body: rec.message,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+        } catch (error) {
+          console.error('Failed to schedule notification:', error);
         }
       }
+      // Notification only - no popup
 
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace('/');
-        return;
-      }
-
-      setUser({
-        id: user.id,
-        name: user.user_metadata?.full_name || 'User',
-        email: user.email || '',
-      });
-
-      const { data: userCards, error } = await supabase
-        .from('user_cards')
-        .select(`
-          id,
-          credit_cards (
-            id,
-            name,
-            issuer,
-            color,
-            rewards
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      const formattedCards = userCards.map((item: any) => ({
-        id: item.credit_cards.id,
-        card_name: item.credit_cards.name,
-        card_issuer: item.credit_cards.issuer,
-        card_color: item.credit_cards.color,
-        rewards: item.credit_cards.rewards,
-      }));
-
-      setCards(formattedCards);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      showPremiumAlert('Error', 'Failed to load data', 'alert-circle');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-
-
-  const startBackgroundTracking = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        showPremiumAlert('Permission Denied', 'Location permission is required for tracking.', 'warning');
-        return;
-      }
-
-      // 1. Start Foreground Tracking (Automatic while app is open)
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 10000, // Check every 10 seconds
-          distanceInterval: 50, // Or every 50 meters
-        },
-        async (location) => {
-          console.log('📍 New location update:', location.coords);
-
-          // Debounce: Ignore updates if less than 5 seconds since last notification
-          const now = Date.now();
-          if (now - lastNotificationTime.current < 5000) {
-            console.log('Skipping update: Debounced');
-            return;
-          }
-
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
-
-            // Only update timestamp if we actually found something and notified
-            if (result?.found) {
-              lastNotificationTime.current = now;
-              await handleLocationResponse(result);
-            }
-          }
-        }
-      );
-      setLocationSubscription(subscription);
-
-      // 2. Start Background Tracking (For when app is closed)
-      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-      if (bgStatus === 'granted') {
-        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // 5 seconds (Low Latency)
-          distanceInterval: 25, // 25 meters (Responsive)
-          foregroundService: {
-            notificationTitle: 'TapRight Active',
-            notificationBody: 'Finding best card recommendations for you',
-          },
-        });
-      }
-
-      setTrackingEnabled(true);
-      await AsyncStorage.setItem('trackingEnabled', 'true');
-      showPremiumAlert('Tracking Started', 'TapRight is now automatically checking your location.', 'location');
-
-    } catch (error: any) {
-      console.error('Failed to start tracking:', error);
-      showPremiumAlert('Error', error.message || 'Failed to start tracking', 'alert-circle');
-    }
-  };
-
-  const stopBackgroundTracking = async () => {
-    try {
-      // Stop foreground subscription
-      if (locationSubscription) {
-        locationSubscription.remove();
-        setLocationSubscription(null);
-      }
-
-      // Stop background task
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
-      if (isRegistered) {
-        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-      }
-
-      setTrackingEnabled(false);
-      await AsyncStorage.setItem('trackingEnabled', 'false');
-    } catch (error) {
-      console.warn('Error stopping tracking:', error);
-    }
-  };
-
-  const toggleTracking = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (trackingEnabled) {
-      await stopBackgroundTracking();
-    } else {
-      await startBackgroundTracking();
+    } else if (data.throttled) {
+      // Skip - already notified recently
+    } else if (data.no_cards) {
+      // Only show popup for important errors that need user action
+      showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
     }
   };
 
@@ -330,69 +192,184 @@ export default function HomeScreen() {
     }
   };
 
-  const registerForPushNotifications = async () => {
-    // Prevent duplicate registrations
-    if (notificationsRegistered.current) {
-      return;
-    }
-
+  const startBackgroundTracking = async () => {
     try {
-      // Skip on web platform
-      if (Platform.OS === 'web') {
-        console.log('Push notifications not available on web');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        showPremiumAlert('Permission Denied', 'Location permission is required for tracking.', 'warning');
         return;
       }
 
+      // 1. Start Foreground Tracking (Automatic while app is open)
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 10000,
+          distanceInterval: 50,
+        },
+        async (location) => {
+          console.log('📍 New location update:', location.coords);
+          const now = Date.now();
+          if (now - lastNotificationTime.current < 5000) {
+            console.log('Skipping update: Debounced');
+            return;
+          }
+
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
+            if (result?.found) {
+              lastNotificationTime.current = now;
+              await handleLocationResponse(result);
+            }
+          }
+        }
+      );
+      setLocationSubscription(subscription);
+
+      // 2. Start Background Tracking
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus === 'granted') {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 25,
+          foregroundService: {
+            notificationTitle: 'TapRight Active',
+            notificationBody: 'Finding best card recommendations for you',
+          },
+        });
+      }
+
+      setTrackingEnabled(true);
+      await AsyncStorage.setItem('trackingEnabled', 'true');
+
+      // Explicitly trigger a check immediately to ensure "Instant" feel
+      await checkCurrentLocation();
+
+    } catch (error: any) {
+      console.error('Failed to start tracking:', error);
+      showPremiumAlert('Error', error.message || 'Failed to start tracking', 'alert-circle');
+    }
+  };
+
+  const stopBackgroundTracking = async () => {
+    try {
+      if (locationSubscription) {
+        locationSubscription.remove();
+        setLocationSubscription(null);
+      }
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
+      if (isRegistered) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      }
+      setTrackingEnabled(false);
+      await AsyncStorage.setItem('trackingEnabled', 'false');
+    } catch (error) {
+      console.warn('Error stopping tracking:', error);
+    }
+  };
+
+  const registerForPushNotifications = async () => {
+    if (notificationsRegistered.current) return;
+    try {
+      if (Platform.OS === 'web') return;
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-
-      if (finalStatus !== 'granted') {
-        console.log('Notification permission not granted');
-        return;
-      }
-
+      if (finalStatus !== 'granted') return;
       notificationsRegistered.current = true;
-      console.log('✅ Local notifications enabled');
-      console.log('📍 Background tracking will send notifications when near merchants');
-
     } catch (error: any) {
       console.error('Error setting up notifications:', error);
     }
   };
 
-  const handleLocationResponse = async (data: any) => {
-    if (data.found && data.recommendation) {
-      const rec = data.recommendation;
+  const loadUserData = async () => {
+    try {
+      // Default to TRUE if not set (first launch) or explicitly true
+      const savedTracking = await AsyncStorage.getItem('trackingEnabled');
+      if (savedTracking === 'true' || savedTracking === null) {
+        setTrackingEnabled(true);
+        const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
 
-      if (Platform.OS !== 'web') {
-        try {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `💳 ${rec.merchant_name}`,
-              body: rec.message,
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.HIGH,
-            },
-            trigger: null,
-          });
-        } catch (error) {
-          console.error('Failed to schedule notification:', error);
+        // Auto-start if missing
+        if (!isRegistered) {
+          // We can safely call this because functions are hoisted/defined in scope
+          startBackgroundTracking();
         }
       }
-      // Notification only - no popup
 
-    } else if (data.throttled) {
-      // Skip - already notified recently
-    } else if (data.no_cards) {
-      // Only show popup for important errors that need user action
-      showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace('/');
+        return;
+      }
+
+      setUser({
+        id: user.id,
+        name: user.user_metadata?.full_name || 'User',
+        email: user.email || '',
+      });
+
+      const { data: userCards, error } = await supabase
+        .from('user_cards')
+        .select(`
+          id,
+          credit_cards (
+            id,
+            name,
+            issuer,
+            color,
+            rewards
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const formattedCards = userCards.map((item: any) => ({
+        id: item.credit_cards.id,
+        card_name: item.credit_cards.name,
+        card_issuer: item.credit_cards.issuer,
+        card_color: item.credit_cards.color,
+        rewards: item.credit_cards.rewards,
+      }));
+
+      setCards(formattedCards);
+
+      // Trigger instant check on load
+      checkCurrentLocation();
+
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      showPremiumAlert('Error', 'Failed to load data', 'alert-circle');
+    } finally {
+      setRefreshing(false);
     }
-    // No popup for "No Merchant Identified" - just silent
+  };
+
+  // Effects
+  useEffect(() => {
+    registerForPushNotifications();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
+  const toggleTracking = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (trackingEnabled) {
+      await stopBackgroundTracking();
+    } else {
+      await startBackgroundTracking();
+    }
   };
 
   const onRefresh = async () => {
