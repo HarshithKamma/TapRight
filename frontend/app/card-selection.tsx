@@ -163,13 +163,8 @@ export default function WalletEditorScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
-  }
+  // Removed blocking loading state for instant navigation feel
+  // if (loading) { ... }
 
   return (
     <View style={styles.container}>
