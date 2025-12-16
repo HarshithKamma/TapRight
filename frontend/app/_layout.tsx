@@ -4,16 +4,16 @@ import '../lib/location-task'; // Register background tasks
 
 export default function Layout() {
     return (
-        <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="home" />
-            <Stack.Screen name="login" />
+        <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
+            <Stack.Screen name="index" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="home" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="login" options={{ gestureEnabled: false }} />
             <Stack.Screen name="signup" />
             <Stack.Screen name="profile" />
             <Stack.Screen name="edit-profile" />
-            <Stack.Screen name="card-selection" />
-            <Stack.Screen name="questionnaire" />
-            <Stack.Screen name="permissions" />
+            <Stack.Screen name="card-selection" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="questionnaire" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="permissions" options={{ gestureEnabled: false }} />
         </Stack>
     );
 }
