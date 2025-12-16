@@ -21,7 +21,7 @@ Notifications.setNotificationHandler({
 // Helper to log visit
 export const logVisit = async (userId: string, merchant: any): Promise<boolean> => {
     try {
-        // Check if recently visited (within last 30 minutes)
+        // 1. Check if recently visited (within last 30 minutes) for Notification throttling
         const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
         const { data: recentVisit } = await supabase
             .from('location_history')
@@ -31,11 +31,9 @@ export const logVisit = async (userId: string, merchant: any): Promise<boolean> 
             .gte('visited_at', thirtyMinutesAgo)
             .limit(1);
 
-        if (recentVisit && recentVisit.length > 0) {
-            console.log('Skipping log: Recently visited', merchant.name);
-            return false; // Skipped
-        }
+        const shouldNotify = !recentVisit || recentVisit.length === 0;
 
+        // 2. ALWAYS Log the visit for Trends data
         const { error } = await supabase.from('location_history').insert({
             user_id: userId,
             merchant_name: merchant.name,
@@ -44,12 +42,19 @@ export const logVisit = async (userId: string, merchant: any): Promise<boolean> 
             longitude: merchant.longitude,
             visited_at: new Date().toISOString(),
         });
+
         if (error) {
             console.error('Supabase insert error:', error.message);
+            // Even if logging fails, we might still want to notify if it was time, 
+            // but for safety let's return false to avoid spam if DB is down.
             return false;
         } else {
-            console.log('✅ Visit logged:', merchant.name);
-            return true; // Logged successfully
+            if (shouldNotify) {
+                console.log('✅ Visit logged (New Context) -> Notify:', merchant.name);
+            } else {
+                console.log('📝 Visit logged (Silent Update) -> No Notify:', merchant.name);
+            }
+            return shouldNotify; // True = Notify, False = Silent
         }
     } catch (error) {
         console.error('Failed to log visit:', error);
