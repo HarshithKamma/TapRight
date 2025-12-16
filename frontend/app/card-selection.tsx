@@ -7,16 +7,26 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
+  TextInput,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
 import PremiumAlert from '../components/PremiumAlert';
+import VisualCard from '../components/VisualCard';
+import * as Haptics from 'expo-haptics';
 
-
-
-
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 interface CreditCard {
   id: string;
@@ -27,175 +37,129 @@ interface CreditCard {
   annual_fee: number;
 }
 
-export default function CardSelectionScreen() {
+export default function WalletEditorScreen() {
   const router = useRouter();
-  const [cards, setCards] = useState<CreditCard[]>([]);
-  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
-  const [initialCards, setInitialCards] = useState<Set<string>>(new Set());
+  const [userCards, setUserCards] = useState<CreditCard[]>([]);
+  const [allCards, setAllCards] = useState<CreditCard[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Alerts
+  const [cardToRemove, setCardToRemove] = useState<CreditCard | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [cardToRemove, setCardToRemove] = useState<string | null>(null);
-  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const [showErrorAlert, setShowErrorAlert] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    loadCardsAndUserWallet();
+    loadData();
   }, []);
 
-  const loadCardsAndUserWallet = async () => {
+  const loadData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load all available cards
-      const { data: cardsData, error: cardsError } = await supabase
+      // 1. Load All Cards (Reference)
+      const { data: allCardsData } = await supabase
         .from('credit_cards')
         .select('*');
 
-      if (cardsError) throw cardsError;
-      setCards(cardsData || []);
+      setAllCards(allCardsData || []);
 
-      // Load user's current wallet
-      const { data: userCardsData, error: userCardsError } = await supabase
+      // 2. Load User's Cards (Actual Wallet)
+      const { data: userWalletData, error } = await supabase
         .from('user_cards')
-        .select('card_id')
+        .select(`
+          card_id,
+          credit_cards (*)
+        `)
         .eq('user_id', user.id);
 
-      if (userCardsError) throw userCardsError;
+      if (error) throw error;
 
-      // Pre-select user's current cards
-      const userCardIds = new Set<string>((userCardsData || []).map((item: any) => item.card_id));
-      setSelectedCards(userCardIds);
-      setInitialCards(userCardIds);
+      // Flatten structure
+      const wallet = userWalletData.map((item: any) => item.credit_cards);
+      setUserCards(wallet);
+
     } catch (error) {
-      console.error('Failed to load cards:', error);
-      Alert.alert('Error', 'Failed to load cards');
+      console.error('Failed to load wallet:', error);
+      Alert.alert('Error', 'Failed to load wallet data');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleCard = (cardId: string) => {
-    const newSelected = new Set(selectedCards);
-    if (newSelected.has(cardId)) {
-      // If the card was in the initial wallet, show confirmation popup
-      if (initialCards.has(cardId)) {
-        setCardToRemove(cardId);
-        setShowRemoveConfirm(true);
-        return;
-      }
-      newSelected.delete(cardId);
-    } else {
-      newSelected.add(cardId);
-    }
-    setSelectedCards(newSelected);
+  // Filter cards for the "Add" modal (exclude ones already owned)
+  const getAvailableCards = () => {
+    const ownedIds = new Set(userCards.map(c => c.id));
+    return allCards.filter(c =>
+      !ownedIds.has(c.id) &&
+      (c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.issuer.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
   };
 
-  const getCardName = (cardId: string): string => {
-    const card = cards.find(c => c.id === cardId);
-    return card ? card.name : 'this card';
-  };
+  const handleAddCard = async (card: CreditCard) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-  const handleConfirmRemove = () => {
-    if (cardToRemove) {
-      const newSelected = new Set(selectedCards);
-      newSelected.delete(cardToRemove);
-      setSelectedCards(newSelected);
-    }
-    setShowRemoveConfirm(false);
-    setCardToRemove(null);
-  };
+    // Optimistic Update: Use functional update to prevent race conditions
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setUserCards(prev => [...prev, card]);
+    setAddModalVisible(false);
+    setSearchQuery('');
 
-  const handleCancelRemove = () => {
-    setShowRemoveConfirm(false);
-    setCardToRemove(null);
-  };
-
-  const handleClearAllPress = () => {
-    setShowClearAllConfirm(true);
-  };
-
-  const handleConfirmClearAll = () => {
-    setSelectedCards(new Set());
-    setShowClearAllConfirm(false);
-  };
-
-  const handleCancelClearAll = () => {
-    setShowClearAllConfirm(false);
-  };
-
-  const handleSuccessConfirm = () => {
-    setShowSuccessAlert(false);
-    router.replace('/home');
-  };
-
-  const handleErrorConfirm = () => {
-    setShowErrorAlert(false);
-  };
-
-  const handleContinue = async () => {
-    // Allow saving empty wallet (0 cards)
-
-
-    setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) throw new Error('No user');
 
-      // Find cards to add (newly selected)
-      const cardsToAdd = Array.from(selectedCards).filter(
-        cardId => !initialCards.has(cardId)
-      );
+      const { error } = await supabase
+        .from('user_cards')
+        .insert({
+          user_id: user.id,
+          card_id: card.id
+        });
 
-      // Find cards to remove (deselected)
-      const cardsToRemove = Array.from(initialCards).filter(
-        cardId => !selectedCards.has(cardId)
-      );
-
-      // Add new cards
-      if (cardsToAdd.length > 0) {
-        const { error: addError } = await supabase
-          .from('user_cards')
-          .insert(
-            cardsToAdd.map(cardId => ({
-              user_id: user.id,
-              card_id: cardId
-            }))
-          );
-        if (addError) throw addError;
-      }
-
-      // Remove deselected cards
-      if (cardsToRemove.length > 0) {
-        const { error: removeError } = await supabase
-          .from('user_cards')
-          .delete()
-          .in('card_id', cardsToRemove)
-          .eq('user_id', user.id);
-        if (removeError) throw removeError;
-      }
-
-      setShowSuccessAlert(true);
+      if (error) throw error;
     } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to save cards');
-      setShowErrorAlert(true);
-    } finally {
-      setSubmitting(false);
+      console.error('Failed to add card:', error);
+      Alert.alert('Save Failed', error.message || 'Could not save change.');
+      // Revert optimization would go here
+      loadData();
     }
   };
 
-  const getRewardsSummary = (rewards: { [key: string]: number }) => {
-    const entries = Object.entries(rewards);
-    if (entries.length === 1 && 'everything' in rewards) {
-      return `${rewards.everything}% on Everything`;
+  const confirmRemove = (card: CreditCard) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCardToRemove(card);
+    setShowRemoveConfirm(true);
+  };
+
+  const executeRemove = async () => {
+    if (!cardToRemove) return;
+
+    // Optimistic Remove: Use functional update
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setUserCards(prev => prev.filter(c => c.id !== cardToRemove!.id));
+    setShowRemoveConfirm(false);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('user_cards')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('card_id', cardToRemove.id);
+
+      if (error) throw error;
+      console.log('Deleted card:', cardToRemove.name);
+
+    } catch (error: any) {
+      console.error('Failed to remove card:', error);
+      Alert.alert('Error', 'Could not delete card.');
+      loadData(); // Revert
     }
-    return entries
-      .slice(0, 2)
-      .map(([key, value]) => `${value}% ${key}`)
-      .join(', ');
   };
 
   if (loading) {
@@ -208,129 +172,129 @@ export default function CardSelectionScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          {selectedCards.size > 0 && (
-            <TouchableOpacity onPress={handleClearAllPress} style={styles.clearButton}>
-              <Text style={styles.clearButtonText}>Clear All</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Manage Your Cards</Text>
-          <Text style={styles.subtitle}>
-            You just tell TapRight what cards you own and that’s it
-          </Text>
-          <Text style={styles.badge}>{selectedCards.size} Selected</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.cardList} contentContainerStyle={styles.cardListContent}>
-        {cards.map((card) => {
-          const isSelected = selectedCards.has(card.id);
-          return (
-            <TouchableOpacity
-              key={card.id}
-              style={[
-                styles.cardItem,
-                isSelected && styles.cardItemSelected,
-              ]}
-              onPress={() => toggleCard(card.id)}
-            >
-              <View
-                style={[
-                  styles.cardColorIndicator,
-                  { backgroundColor: card.color },
-                ]}
-              />
-              <View style={styles.cardInfo}>
-                <Text style={styles.cardName}>{card.name}</Text>
-                <Text style={styles.cardIssuer}>{card.issuer}</Text>
-                <Text style={styles.cardRewards}>
-                  {getRewardsSummary(card.rewards)}
-                </Text>
-                {card.annual_fee > 0 && (
-                  <Text style={styles.cardFee}>${card.annual_fee} annual fee</Text>
-                )}
-              </View>
-              <View style={styles.checkboxContainer}>
-                {isSelected ? (
-                  <Ionicons name="checkmark-circle" size={32} color={COLORS.accent} />
-                ) : (
-                  <Ionicons name="ellipse-outline" size={32} color={COLORS.textSecondary} />
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-          ]}
-          onPress={handleContinue}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator color={COLORS.textPrimary} />
-          ) : (
-            <Text style={styles.continueButtonText}>Save Changes</Text>
-          )}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.title}>My Wallet</Text>
+        <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
+          <Ionicons name="checkmark" size={20} color="white" />
         </TouchableOpacity>
       </View>
 
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Wallet List */}
+        {userCards.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBg}>
+              <Ionicons name="card-outline" size={48} color={COLORS.accent} />
+            </View>
+            <Text style={styles.emptyTitle}>Your wallet is empty</Text>
+            <Text style={styles.emptyText}>
+              Add the cards you own to get personalized recommendations when you shop.
+            </Text>
+            <TouchableOpacity
+              style={styles.addFirstCardButton}
+              onPress={() => setAddModalVisible(true)}
+            >
+              <Text style={styles.addFirstCardText}>Add Your First Card</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.cardList}>
+            {userCards.map((card) => (
+              <View key={card.id} style={styles.walletItemWrapper}>
+                <VisualCard
+                  name={card.name}
+                  issuer={card.issuer}
+                  color={card.color}
+                  rewards={card.rewards}
+                />
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => confirmRemove(card)}
+                >
+                  <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* Add Button at bottom of list */}
+            <TouchableOpacity
+              style={styles.bottomAddButton}
+              onPress={() => setAddModalVisible(true)}
+            >
+              <Ionicons name="add-circle" size={24} color={'white'} />
+              <Text style={styles.bottomAddText}>Add another card</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add Card Modal */}
+      <Modal
+        visible={addModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Card</Text>
+            <TouchableOpacity onPress={() => setAddModalVisible(false)} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search e.g. 'Sapphire', 'Amex'..."
+              placeholderTextColor={COLORS.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus={false}
+            />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.resultList}>
+            {getAvailableCards().map(card => (
+              <TouchableOpacity
+                key={card.id}
+                style={styles.resultItem}
+                onPress={() => handleAddCard(card)}
+              >
+                <View style={[styles.miniCardIcon, { backgroundColor: card.color }]}>
+                  <Text style={styles.miniCardText}>{card.issuer[0]}</Text>
+                </View>
+                <View style={styles.resultInfo}>
+                  <Text style={styles.resultName}>{card.name}</Text>
+                  <Text style={styles.resultIssuer}>{card.issuer}</Text>
+                </View>
+                <Ionicons name="add-circle-outline" size={24} color={COLORS.accent} />
+              </TouchableOpacity>
+            ))}
+            {getAvailableCards().length === 0 && (
+              <Text style={styles.noResults}>No matching cards found.</Text>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Confirmation Alert */}
       <PremiumAlert
         visible={showRemoveConfirm}
         title="Remove Card?"
-        message={`Are you sure you want to remove ${cardToRemove ? getCardName(cardToRemove) : 'this card'} from your wallet?`}
-        icon="card-outline"
+        message={`Are you sure you want to remove ${cardToRemove?.name}?`}
+        icon="trash"
         confirmText="Remove"
         cancelText="Cancel"
-        onConfirm={handleConfirmRemove}
-        onCancel={handleCancelRemove}
+        onConfirm={executeRemove}
+        onCancel={() => setShowRemoveConfirm(false)}
       />
-
-      <PremiumAlert
-        visible={showClearAllConfirm}
-        title="Clear All Cards?"
-        message="Are you sure you want to remove all cards from your wallet?"
-        icon="trash-outline"
-        confirmText="Clear All"
-        cancelText="Cancel"
-        onConfirm={handleConfirmClearAll}
-        onCancel={handleCancelClearAll}
-      />
-
-      <PremiumAlert
-        visible={showSuccessAlert}
-        title="Success"
-        message="Wallet updated successfully!"
-        icon="checkmark-circle"
-        confirmText="OK"
-        cancelText=""
-        onConfirm={handleSuccessConfirm}
-        onCancel={handleSuccessConfirm}
-      />
-
-      <PremiumAlert
-        visible={showErrorAlert}
-        title="Error"
-        message={errorMessage}
-        icon="alert-circle"
-        confirmText="OK"
-        cancelText=""
-        onConfirm={handleErrorConfirm}
-        onCancel={handleErrorConfirm}
-      />
-    </View >
+    </View>
   );
 }
 
@@ -345,149 +309,206 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 20,
     backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.45,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceHighlight,
   },
-  headerTop: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 100,
+  },
+  cardList: {
+    gap: 20,
+  },
+  walletItemWrapper: {
+    position: 'relative',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceHighlight,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  bottomAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    backgroundColor: COLORS.textPrimary,
+    borderRadius: 16,
+    gap: 12,
+    marginTop: 12,
+    shadowColor: COLORS.shadow,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  bottomAddText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'white',
+  },
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.surfaceSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  addFirstCardButton: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 100,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  addFirstCardText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceHighlight,
   },
-  headerContent: {
-    gap: 8,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceSoft,
-  },
-  clearButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: COLORS.surfaceSoft,
-    borderRadius: 16,
-  },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.error,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
-  subtitle: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 8,
+  closeButton: {
+    padding: 4,
   },
-  badge: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 16,
-    backgroundColor: COLORS.surfaceSoft,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  cardList: {
-    flex: 1,
-  },
-  cardListContent: {
-    padding: 20,
-  },
-  cardItem: {
+  searchContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surfaceSoft,
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    margin: 20,
+    paddingHorizontal: 16,
+    height: 50,
+    borderRadius: 12,
   },
-  cardItemSelected: {
-    borderColor: COLORS.accent,
-    shadowOpacity: 0.5,
+  searchIcon: {
+    marginRight: 10,
   },
-  cardColorIndicator: {
-    width: 8,
-    borderRadius: 4,
-    marginRight: 14,
-  },
-  cardInfo: {
+  searchInput: {
     flex: 1,
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
     color: COLORS.textPrimary,
   },
-  cardIssuer: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+  resultList: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  cardRewards: {
-    fontSize: 14,
-    color: COLORS.accentMuted,
-    marginTop: 10,
-    fontWeight: '600',
-  },
-  cardFee: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  checkboxContainer: {
-    justifyContent: 'center',
-    marginLeft: 12,
-  },
-  footer: {
-    padding: 20,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  continueButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 24,
-    paddingVertical: 18,
+  resultItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceHighlight,
   },
-  continueButtonDisabled: {
-    backgroundColor: COLORS.surfaceHighlight,
-    shadowOpacity: 0,
+  miniCardIcon: {
+    width: 40,
+    height: 26,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  continueButtonText: {
+  miniCardText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 10,
+    fontWeight: '700',
   },
+  resultInfo: {
+    flex: 1,
+  },
+  resultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  resultIssuer: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  noResults: {
+    textAlign: 'center',
+    marginTop: 40,
+    color: COLORS.textSecondary,
+    fontSize: 16,
+  }
 });

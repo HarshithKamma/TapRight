@@ -15,11 +15,11 @@ interface DonutChartProps {
 // Exported so TrendsScreen can use it too
 export const CATEGORY_COLORS: { [key: string]: string } = {
     'dining': '#ef4444', // Red
-    'groceries': '#10b981', // Green
-    'travel': '#3b82f6', // Blue
+    'groceries': '#14eda5ff', // Green
+    'travel': '#2476faff', // Blue
     'gas': '#f59e0b', // Amber
     'shopping': '#8b5cf6', // Violet
-    'entertainment': '#06b6d4', // Cyan (Changed from Pink for better contrast)
+    'entertainment': '#09d3f6ff', // Cyan (Changed from Pink for better contrast)
     'general': '#6b7280', // Gray
     'default': '#6b7280'
 };
