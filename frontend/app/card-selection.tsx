@@ -49,7 +49,30 @@ export default function WalletEditorScreen() {
 
   // Alerts
   const [cardToRemove, setCardToRemove] = useState<CreditCard | null>(null);
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  // Unified Alert Configuration
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: 'notifications' as any,
+    confirmText: 'OK',
+    cancelText: '', // Add cancelText support
+    onConfirm: () => { },
+    onCancel: () => { },
+  });
+
+  const showAlert = (title: string, message: string, icon = 'alert-circle') => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      icon: icon as any,
+      confirmText: 'OK',
+      cancelText: '',
+      onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+      onCancel: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+    });
+  };
 
   useEffect(() => {
     loadData();
@@ -84,7 +107,7 @@ export default function WalletEditorScreen() {
 
     } catch (error) {
       console.error('Failed to load wallet:', error);
-      Alert.alert('Error', 'Failed to load wallet data');
+      showAlert('Error', 'Failed to load wallet data');
     } finally {
       setLoading(false);
     }
@@ -123,7 +146,6 @@ export default function WalletEditorScreen() {
     // Optimistic Update: Use functional update to prevent race conditions
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUserCards(prev => [...prev, card]);
-    // setSearchQuery(''); // REMOVED: Keep search results for rapid multi-add
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -143,7 +165,7 @@ export default function WalletEditorScreen() {
 
     } catch (error: any) {
       console.error('Failed to add card:', error);
-      Alert.alert('Save Failed', error.message || 'Could not save change.');
+      showAlert('Save Failed', error.message || 'Could not save change.');
       // Revert optimization would go here
       loadData();
     }
@@ -152,16 +174,30 @@ export default function WalletEditorScreen() {
   const confirmRemove = (card: CreditCard) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCardToRemove(card);
-    setShowRemoveConfirm(true);
+    setAlertConfig({
+      visible: true,
+      title: 'Remove Card?',
+      message: `Are you sure you want to remove ${card.name}?`,
+      icon: 'trash',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      onConfirm: executeRemove,
+      onCancel: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+    });
   };
 
   const executeRemove = async () => {
+    // Note: cardToRemove relies on closure or state? State is safer here but executeRemove needs to know WHO to remove.
+    // However, since executeRemove is closing over the scope or using state?
+    // Let's use the state `cardToRemove` which we set in confirmRemove.
     if (!cardToRemove) return;
+
+    // Close alert first
+    setAlertConfig(prev => ({ ...prev, visible: false }));
 
     // Optimistic Remove: Use functional update
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setUserCards(prev => prev.filter(c => c.id !== cardToRemove!.id));
-    setShowRemoveConfirm(false);
+    setUserCards(prev => prev.filter(c => c.id !== cardToRemove.id));
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -181,7 +217,7 @@ export default function WalletEditorScreen() {
 
     } catch (error: any) {
       console.error('Failed to remove card:', error);
-      Alert.alert('Error', 'Could not delete card.');
+      showAlert('Error', 'Could not delete card.');
       loadData(); // Revert
     }
   };
@@ -313,14 +349,14 @@ export default function WalletEditorScreen() {
 
       {/* Confirmation Alert */}
       <PremiumAlert
-        visible={showRemoveConfirm}
-        title="Remove Card?"
-        message={`Are you sure you want to remove ${cardToRemove?.name}?`}
-        icon="trash"
-        confirmText="Remove"
-        cancelText="Cancel"
-        onConfirm={executeRemove}
-        onCancel={() => setShowRemoveConfirm(false)}
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
       />
     </View>
   );

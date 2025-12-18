@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
+import PremiumAlert from '../components/PremiumAlert';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -24,6 +25,28 @@ export default function EditProfileScreen() {
     const [cardPayments, setCardPayments] = useState('');
     const [carPayments, setCarPayments] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Custom Alert State
+    const [alertConfig, setAlertConfig] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        icon: 'notifications' as any,
+        onConfirm: () => { },
+    });
+
+    const showAlert = (title: string, message: string, icon = 'alert-circle', onConfirm?: () => void) => {
+        setAlertConfig({
+            visible: true,
+            title,
+            message,
+            icon: icon as any,
+            onConfirm: () => {
+                setAlertConfig(prev => ({ ...prev, visible: false }));
+                if (onConfirm) onConfirm();
+            },
+        });
+    };
 
     useEffect(() => {
         loadUserProfile();
@@ -52,7 +75,7 @@ export default function EditProfileScreen() {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Name cannot be empty');
+            showAlert('Error', 'Name cannot be empty', 'alert-circle');
             return;
         }
 
@@ -80,11 +103,9 @@ export default function EditProfileScreen() {
 
             if (profileError) throw profileError;
 
-            Alert.alert('Success', 'Profile updated successfully', [
-                { text: 'OK', onPress: () => router.back() }
-            ]);
+            showAlert('Success', 'Profile updated successfully', 'checkmark-circle', () => router.back());
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showAlert('Error', error.message, 'alert-circle');
         } finally {
             setLoading(false);
         }
@@ -96,6 +117,14 @@ export default function EditProfileScreen() {
             style={styles.container}
         >
             <StatusBar barStyle="dark-content" />
+            <PremiumAlert
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                icon={alertConfig.icon}
+                onConfirm={alertConfig.onConfirm}
+                onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+            />
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>

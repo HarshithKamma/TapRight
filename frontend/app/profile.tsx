@@ -73,94 +73,72 @@ const SettingItem = ({ icon, title, value, onValueChange, type = 'toggle' }: any
     </View>
 );
 
+import PremiumAlert from '../components/PremiumAlert';
+
+// ... (existing imports)
+
 export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [cardNames, setCardNames] = useState<string[]>([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
-    const [modalConfig, setModalConfig] = useState({
+
+    // Unified Alert Configuration
+    const [alertConfig, setAlertConfig] = useState({
         visible: false,
         title: '',
         message: '',
-        confirmText: '',
-        isDelete: false,
+        icon: 'notifications' as any,
+        confirmText: 'OK',
+        isDelete: false, // Keep specific flag for logic 
+        onConfirm: () => { }, // Default no-op
     });
-    const fadeAnim = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-        if (modalConfig.visible) {
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-        } else {
-            Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 150,
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [modalConfig.visible]);
-
-    useEffect(() => {
-        loadUserProfile();
-    }, []);
-
-    const loadUserProfile = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser({
-                    name: user.user_metadata?.full_name || 'User',
-                    email: user.email,
-                    initials: (user.user_metadata?.full_name || 'U').charAt(0).toUpperCase(),
-                });
-
-                // Fetch cards
-                const { data: cards } = await supabase
-                    .from('user_cards')
-                    .select('credit_cards(name)')
-                    .eq('user_id', user.id);
-
-                if (cards) {
-                    setCardNames(cards.map((c: any) => c.credit_cards?.name).filter(Boolean));
-                }
-            }
-        } catch (error) {
-            console.error('Error loading profile:', error);
-        }
+    const showAlert = (title: string, message: string, icon = 'alert-circle') => {
+        setAlertConfig({
+            visible: true,
+            title,
+            message,
+            icon: icon as any,
+            confirmText: 'OK',
+            isDelete: false,
+            onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+        });
     };
 
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setModalConfig({
+        setAlertConfig({
             visible: true,
             title: 'Log Out',
             message: 'Are you sure you want to log out of your account?',
+            icon: 'log-out-outline',
             confirmText: 'Log Out',
             isDelete: false,
+            onConfirm: handleConfirmAction,
         });
     };
 
     const handleDeleteAccount = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        setModalConfig({
+        setAlertConfig({
             visible: true,
             title: 'Delete Account',
             message: 'We are sorry to see you go. This action is irreversible. All your data will be permanently removed. Are you sure?',
+            icon: 'trash-outline',
             confirmText: 'Delete',
             isDelete: true,
+            onConfirm: handleConfirmAction,
         });
     };
 
     const handleConfirmAction = async () => {
-        setModalConfig(prev => ({ ...prev, visible: false }));
+        setAlertConfig(prev => ({ ...prev, visible: false }));
 
         // Small delay to let modal close gracefully
         setTimeout(async () => {
-            if (modalConfig.isDelete) {
+            if (alertConfig.isDelete) {
                 try {
                     const { error } = await supabase.rpc('delete_user');
                     if (error) throw error;
@@ -175,15 +153,19 @@ export default function ProfileScreen() {
         }, 300);
     };
 
+    // ... (existing useEffects and loadUserProfile)
+
     const handleHelpCenter = async () => {
         const url = 'mailto:info@tapright.app';
         const canOpen = await Linking.canOpenURL(url);
         if (canOpen) {
             await Linking.openURL(url);
         } else {
-            Alert.alert('Error', 'Could not open email client.');
+            showAlert('Error', 'Could not open email client.');
         }
     };
+
+    // ... (rest of methods)
 
     const handlePrivacyPolicy = () => {
         router.push('/privacy-policy');
@@ -193,43 +175,14 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" />
 
-            {/* Custom Modal (Logout / Delete) */}
-            {modalConfig.visible && (
-                <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
-                    <TouchableOpacity
-                        style={styles.modalBackdrop}
-                        activeOpacity={1}
-                        onPress={() => setModalConfig(prev => ({ ...prev, visible: false }))}
-                    />
-                    <View style={styles.modalContent}>
-                        <View style={[styles.modalIconContainer, modalConfig.isDelete && { backgroundColor: '#fee2e2' }]}>
-                            <Ionicons
-                                name={modalConfig.isDelete ? "trash-outline" : "log-out-outline"}
-                                size={32}
-                                color={COLORS.error}
-                            />
-                        </View>
-                        <Text style={styles.modalTitle}>{modalConfig.title}</Text>
-                        <Text style={styles.modalMessage}>{modalConfig.message}</Text>
-
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() => setModalConfig(prev => ({ ...prev, visible: false }))}
-                            >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.logoutConfirmButton]}
-                                onPress={handleConfirmAction}
-                            >
-                                <Text style={styles.logoutConfirmText}>{modalConfig.confirmText}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Animated.View>
-            )}
+            <PremiumAlert
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                icon={alertConfig.icon}
+                onConfirm={alertConfig.onConfirm}
+                onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+            />
 
             {/* Header */}
             <View style={styles.header}>

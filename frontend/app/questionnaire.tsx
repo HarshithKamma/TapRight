@@ -20,6 +20,8 @@ import { COLORS } from '../constants/Colors';
 
 
 
+import PremiumAlert from '../components/PremiumAlert';
+
 export default function QuestionnaireScreen() {
   const router = useRouter();
   const [monthlyRent, setMonthlyRent] = useState('');
@@ -27,6 +29,25 @@ export default function QuestionnaireScreen() {
   const [cardPayments, setCardPayments] = useState('');
   const [carPayments, setCarPayments] = useState('');
   const logoSource = require('../assets/images/tapright-logo.png');
+
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: 'notifications' as any,
+    onConfirm: () => { },
+  });
+
+  const showAlert = (title: string, message: string, icon = 'alert-circle') => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      icon: icon as any,
+      onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+    });
+  };
 
   const handleSkip = () => {
     router.replace('/card-selection?onboarding=true');
@@ -37,7 +58,7 @@ export default function QuestionnaireScreen() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        Alert.alert('Error', 'No user found');
+        showAlert('Error', 'No user found');
         return;
       }
 
@@ -56,7 +77,7 @@ export default function QuestionnaireScreen() {
       router.replace('/card-selection?onboarding=true');
     } catch (error: any) {
       console.error('Failed to save questionnaire:', error);
-      Alert.alert('Error', 'Failed to save questionnaire');
+      showAlert('Error', 'Failed to save questionnaire');
     }
   };
 
@@ -65,6 +86,14 @@ export default function QuestionnaireScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <PremiumAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <TouchableOpacity

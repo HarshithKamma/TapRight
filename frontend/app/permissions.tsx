@@ -8,19 +8,41 @@ import { COLORS } from '../constants/Colors';
 
 
 
+import PremiumAlert from '../components/PremiumAlert';
+
 export default function PermissionsScreen() {
   const router = useRouter();
   const [locationGranted, setLocationGranted] = useState(false);
   const [notificationGranted, setNotificationGranted] = useState(false);
+
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: 'notifications' as any,
+    onConfirm: () => { },
+  });
+
+  const showAlert = (title: string, message: string, icon = 'alert-circle') => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      icon: icon as any,
+      onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+    });
+  };
 
   const requestLocationPermission = async () => {
     try {
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
 
       if (foregroundStatus !== 'granted') {
-        Alert.alert(
+        showAlert(
           'Permission Required',
-          'Location permission is required for TapRight to work properly.'
+          'Location permission is required for TapRight to work properly.',
+          'location'
         );
         return;
       }
@@ -28,16 +50,17 @@ export default function PermissionsScreen() {
       const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
 
       if (backgroundStatus !== 'granted') {
-        Alert.alert(
+        showAlert(
           'Background Permission',
-          'Background location helps us send timely recommendations even when the app is closed.'
+          'Background location helps us send timely recommendations even when the app is closed.',
+          'location'
         );
       }
 
       setLocationGranted(true);
     } catch (error) {
       console.error('Failed to request location permission:', error);
-      Alert.alert('Error', 'Failed to request location permission');
+      showAlert('Error', 'Failed to request location permission');
     }
   };
 
@@ -46,9 +69,10 @@ export default function PermissionsScreen() {
       const { status } = await Notifications.requestPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert(
+        showAlert(
           'Permission Required',
-          'Notification permission is required to send you card recommendations.'
+          'Notification permission is required to send you card recommendations.',
+          'notifications'
         );
         return;
       }
@@ -56,17 +80,17 @@ export default function PermissionsScreen() {
       setNotificationGranted(true);
     } catch (error) {
       console.error('Failed to request notification permission:', error);
-      Alert.alert('Error', 'Failed to request notification permission');
+      showAlert('Error', 'Failed to request notification permission');
     }
   };
 
   const handleContinue = () => {
     if (!locationGranted) {
-      Alert.alert('Location Required', 'Please grant location permission to continue.');
+      showAlert('Location Required', 'Please grant location permission to continue.', 'location');
       return;
     }
     if (!notificationGranted) {
-      Alert.alert('Notifications Required', 'Please grant notification permission to continue.');
+      showAlert('Notifications Required', 'Please grant notification permission to continue.', 'notifications');
       return;
     }
     router.replace('/home');
@@ -74,6 +98,14 @@ export default function PermissionsScreen() {
 
   return (
     <View style={styles.container}>
+      <PremiumAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
       <View style={styles.gradient}>
         <View style={styles.iconWrap}>
           <Ionicons name="shield-checkmark" size={64} color={COLORS.accentMuted} />

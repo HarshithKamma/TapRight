@@ -88,7 +88,7 @@ export default function SignupScreen() {
     setIsFormReady((prev) => (prev === hasAllValues ? prev : hasAllValues));
   };
 
-  const showPremiumAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications') => {
+  const showPremiumConfirm = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications') => {
     return new Promise<boolean>((resolve) => {
       setAlertConfig({
         visible: true,
@@ -107,9 +107,23 @@ export default function SignupScreen() {
     });
   };
 
+  const showAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'alert-circle', onConfirm?: () => void) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      icon,
+      onConfirm: () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+    });
+  };
+
   const requestNotificationPermission = async () => {
     try {
-      const shouldRequest = await showPremiumAlert(
+      const shouldRequest = await showPremiumConfirm(
         'Stay in the loop?',
         'Would you like us to send you notifications for card recommendations?',
         'notifications'
@@ -127,7 +141,7 @@ export default function SignupScreen() {
 
   const requestLocationPermission = async () => {
     try {
-      const shouldRequest = await showPremiumAlert(
+      const shouldRequest = await showPremiumConfirm(
         'Share your location?',
         'Allow TapRight to access your location even in the background so we can send timely recommendations.',
         'location'
@@ -140,9 +154,10 @@ export default function SignupScreen() {
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
 
       if (foregroundStatus !== 'granted') {
-        Alert.alert(
+        showAlert(
           'Location Needed',
-          'We need location permission to suggest the best card based on where you are.'
+          'We need location permission to suggest the best card based on where you are.',
+          'location'
         );
         return;
       }
@@ -151,9 +166,10 @@ export default function SignupScreen() {
         const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
 
         if (backgroundStatus !== 'granted') {
-          Alert.alert(
+          showAlert(
             'Background Location',
-            'Background access lets us notify you even when the app is closed.'
+            'Background access lets us notify you even when the app is closed.',
+            'navigate'
           );
         }
       }
@@ -169,12 +185,12 @@ export default function SignupScreen() {
     const trimmedPhone = phone.trim();
 
     if (!trimmedName || !trimmedEmail || !trimmedPhone || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Error', 'Password must be at least 6 characters');
       return;
     }
 
@@ -217,15 +233,16 @@ export default function SignupScreen() {
         // Send Welcome Email even if confirmation is pending (optional, but requested)
         sendWelcomeEmail(trimmedEmail, trimmedName).catch(err => console.error('Failed to send welcome email:', err));
 
-        Alert.alert(
+        showAlert(
           'Verify Email',
           'Please check your email to confirm your account before logging in.',
-          [{ text: 'OK', onPress: () => router.replace('/login') }]
+          'mail',
+          () => router.replace('/login')
         );
       }
     } catch (error: any) {
       setLoading(false);
-      Alert.alert('Signup Failed', error.message || 'Please try again');
+      showAlert('Signup Failed', error.message || 'Please try again', 'alert-circle');
     }
   };
 

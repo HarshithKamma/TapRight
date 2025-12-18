@@ -43,11 +43,32 @@ const getCategoryIcon = (category: string) => {
     return 'pricetag';
 };
 
+import PremiumAlert from '../components/PremiumAlert';
+
 export default function TrendsScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [trends, setTrends] = useState<CategoryTrend[]>([]);
     const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
+
+    // Custom Alert State
+    const [alertConfig, setAlertConfig] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        icon: 'notifications' as any,
+        onConfirm: () => { },
+    });
+
+    const showAlert = (title: string, message: string, icon = 'alert-circle') => {
+        setAlertConfig({
+            visible: true,
+            title,
+            message,
+            icon: icon as any,
+            onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+        });
+    };
 
     useEffect(() => {
         loadTrendsAndRecommendations();
@@ -235,7 +256,7 @@ export default function TrendsScreen() {
 
         } catch (error) {
             console.error('Error loading trends:', error);
-            Alert.alert('Error', 'Failed to load recommendations');
+            showAlert('Error', 'Failed to load recommendations');
         } finally {
             setLoading(false);
         }
@@ -251,6 +272,14 @@ export default function TrendsScreen() {
 
     return (
         <View style={styles.container}>
+            <PremiumAlert
+                visible={alertConfig.visible}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                icon={alertConfig.icon}
+                onConfirm={alertConfig.onConfirm}
+                onCancel={alertConfig.onConfirm} // Use checkmark or OK to close on simple alerts
+            />
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
