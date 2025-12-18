@@ -21,6 +21,7 @@ import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
 import PremiumAlert from '../components/PremiumAlert';
+import { sendWelcomeEmail } from '../lib/email';
 
 type FormFields = {
   name: string;
@@ -201,6 +202,10 @@ export default function SignupScreen() {
           phone: trimmedPhone
         }));
 
+        // Send Welcome Email
+        // Note: We use the trimmed email/name. This is a fire-and-forget call.
+        sendWelcomeEmail(trimmedEmail, trimmedName).catch(err => console.error('Failed to send welcome email:', err));
+
         setLoading(false);
 
         setTimeout(async () => {
@@ -209,6 +214,9 @@ export default function SignupScreen() {
           router.replace('/questionnaire');
         }, 500);
       } else if (data.user) {
+        // Send Welcome Email even if confirmation is pending (optional, but requested)
+        sendWelcomeEmail(trimmedEmail, trimmedName).catch(err => console.error('Failed to send welcome email:', err));
+
         Alert.alert(
           'Verify Email',
           'Please check your email to confirm your account before logging in.',

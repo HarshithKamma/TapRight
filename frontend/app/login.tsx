@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
+import { sendPasswordChangedEmail } from '../lib/email';
 
 
 export default function LoginScreen() {
@@ -25,9 +26,15 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Animation for form entry
+  // Join the existing animation ref
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // New state for Reset Password mode
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetStep, setResetStep] = useState<'email' | 'otp' | 'new_password'>('email');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     Animated.parallel([
@@ -44,6 +51,15 @@ export default function LoginScreen() {
       }),
     ]).start();
   }, []);
+
+  // Update back button logic when mode changes
+  useEffect(() => {
+    if (!isResetMode) {
+      setResetStep('email');
+      setOtp('');
+      setNewPassword('');
+    }
+  }, [isResetMode]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -92,6 +108,98 @@ export default function LoginScreen() {
     }
   };
 
+  const handleResetEmail = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    setLoading(true);
+    try {
+      // Trigger the password reset flow
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+
+      if (error) {
+        throw error;
+      }
+
+      Alert.alert(
+        'Code Sent',
+        `A verification code has been sent to ${email} from info@tapright.app.`,
+        [{ text: 'OK', onPress: () => setResetStep('otp') }]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send reset email. Check console for details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit code');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'recovery',
+      });
+
+      if (error) throw error;
+
+      // If successful, we have a session and can proceed to update password
+      if (data.session) {
+        setResetStep('new_password');
+      } else {
+        throw new Error('Verification failed. Use the link in the email or try again.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Invalid code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      // Send confirmation email
+      sendPasswordChangedEmail(email.trim()).catch(err => console.error('Failed to send password changed email:', err));
+
+      Alert.alert(
+        'Success',
+        'Your password has been updated. Please log in with your new password.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Sign out ensuring clean state for re-login
+              supabase.auth.signOut().then(() => {
+                setIsResetMode(false);
+                setPassword('');
+              });
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to update password: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
@@ -102,73 +210,195 @@ export default function LoginScreen() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (isResetMode) {
+              setIsResetMode(false);
+            } else {
+              router.back();
+            }
+          }}
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
         </TouchableOpacity>
 
         <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue your journey.</Text>
+            <Text style={styles.title}>{isResetMode ? 'Reset Password' : 'Welcome Back'}</Text>
+            <Text style={styles.subtitle}>
+              {isResetMode
+                ? 'Enter your email to receive a reset link.'
+                : 'Sign in to continue your journey.'}
+            </Text>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="john@example.com"
-                placeholderTextColor={COLORS.placeholder}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="••••••••"
-                  placeholderTextColor={COLORS.placeholder}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                  <Ionicons
-                    name={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color={COLORS.textSecondary}
+            {/* Login View */}
+            {!isResetMode && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="john@example.com"
+                    placeholderTextColor={COLORS.placeholder}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
                   />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="••••••••"
+                      placeholderTextColor={COLORS.placeholder}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={20}
+                        color={COLORS.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setIsResetMode(true)}
+                    style={{ alignSelf: 'flex-end', marginTop: 8 }}
+                  >
+                    <Text style={{ color: COLORS.accent, fontWeight: '600', fontSize: 13 }}>
+                      Forgot Password?
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text style={styles.loginButtonText}>Log In</Text>
+                      <Ionicons name="arrow-forward" size={20} color="white" />
+                    </>
+                  )}
                 </TouchableOpacity>
-              </View>
-            </View>
 
-            <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <Text style={styles.loginButtonText}>Log In</Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" />
-                </>
-              )}
-            </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLinkWrapper}>
+                  <Text style={styles.signupText}>
+                    Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
-            <TouchableOpacity onPress={() => router.push('/signup')} style={styles.signupLinkWrapper}>
-              <Text style={styles.signupText}>
-                Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
-              </Text>
-            </TouchableOpacity>
+            {/* Reset Step 1: Email */}
+            {isResetMode && resetStep === 'email' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="john@example.com"
+                    placeholderTextColor={COLORS.placeholder}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  onPress={handleResetEmail}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Send Verification Code</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Reset Step 2: OTP */}
+            {isResetMode && resetStep === 'otp' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Verification Code</Text>
+                  <Text style={{ color: COLORS.textSecondary, marginBottom: 8, fontSize: 13 }}>
+                    Check for email from info@tapright.app
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="123456"
+                    placeholderTextColor={COLORS.placeholder}
+                    value={otp}
+                    onChangeText={setOtp}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    autoFocus
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  onPress={handleVerifyOtp}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Reset Step 3: New Password */}
+            {isResetMode && resetStep === 'new_password' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>New Password</Text>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="New Password"
+                      placeholderTextColor={COLORS.placeholder}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={20}
+                        color={COLORS.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  onPress={handleUpdatePassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Reset Password</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
