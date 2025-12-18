@@ -126,7 +126,10 @@ export default function HomeScreen() {
   };
 
   const handleLocationResponse = async (data: any) => {
-    if (data.found && data.recommendation) {
+    if (data.no_cards) {
+      // Only show popup for important errors that need user action
+      showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
+    } else if (data.found && data.recommendation) {
       const rec = data.recommendation;
 
       if (Platform.OS !== 'web') {
@@ -148,9 +151,6 @@ export default function HomeScreen() {
 
     } else if (data.throttled) {
       // Skip - already notified recently
-    } else if (data.no_cards) {
-      // Only show popup for important errors that need user action
-      showPremiumAlert('No Cards', 'Add cards to your wallet to get recommendations.', 'wallet');
     }
   };
 
