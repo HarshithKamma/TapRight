@@ -25,6 +25,8 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
         if (!response.ok) {
             const errorData = await response.json();
             console.error('Resend API Error:', errorData);
+        } else {
+            console.log('Email sent successfully via Resend');
         }
     } catch (error) {
         console.error('Failed to send email:', error);
