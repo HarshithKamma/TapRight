@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { COLORS } from '../constants/Colors';
 import { sendPasswordChangedEmail } from '../lib/email';
+import PremiumAlert from '../components/PremiumAlert';
 
 
 export default function LoginScreen() {
@@ -25,6 +26,27 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: 'notifications' as any,
+    onConfirm: () => { },
+    confirmText: 'OK',
+  });
+
+  const showAlert = (title: string, message: string, icon = 'alert-circle', onConfirm = () => setAlertConfig(prev => ({ ...prev, visible: false }))) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      icon: icon as any,
+      onConfirm,
+      confirmText: 'OK',
+    });
+  };
 
   // Join the existing animation ref
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -63,7 +85,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -102,7 +124,12 @@ export default function LoginScreen() {
       router.replace('/home');
     } catch (error: any) {
       console.log('Login Error Details:', error);
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      // Map generic credential error to user's preferred messaging
+      let message = error.message || 'Invalid credentials';
+      if (message.includes('Invalid login credentials')) {
+        message = "User doesn't exist or invalid password.";
+      }
+      showAlert('Login Failed', message, 'alert-circle');
     } finally {
       setLoading(false);
     }
@@ -110,7 +137,7 @@ export default function LoginScreen() {
 
   const handleResetEmail = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email address');
+      showAlert('Error', 'Please enter your email address');
       return;
     }
     setLoading(true);
@@ -122,21 +149,25 @@ export default function LoginScreen() {
         throw error;
       }
 
-      Alert.alert(
+      showAlert(
         'Code Sent',
         `A verification code has been sent to ${email} from info@tapright.app.`,
-        [{ text: 'OK', onPress: () => setResetStep('otp') }]
+        'mail',
+        () => {
+          setAlertConfig(prev => ({ ...prev, visible: false }));
+          setResetStep('otp');
+        }
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send reset email. Check console for details.');
+      showAlert('Error', error.message || 'Failed to send reset email. Check console for details.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) {
-      Alert.alert('Error', 'Please enter a valid 6-digit code');
+    if (!otp || otp.length < 4) {
+      showAlert('Error', 'Please enter a valid code');
       return;
     }
     setLoading(true);
@@ -156,7 +187,7 @@ export default function LoginScreen() {
         throw new Error('Verification failed. Use the link in the email or try again.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Invalid code');
+      showAlert('Error', error.message || 'Invalid code');
     } finally {
       setLoading(false);
     }
@@ -164,7 +195,7 @@ export default function LoginScreen() {
 
   const handleUpdatePassword = async () => {
     if (!newPassword || newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showAlert('Error', 'Password must be at least 6 characters');
       return;
     }
     setLoading(true);
@@ -178,24 +209,21 @@ export default function LoginScreen() {
       // Send confirmation email
       sendPasswordChangedEmail(email.trim()).catch(err => console.error('Failed to send password changed email:', err));
 
-      Alert.alert(
+      showAlert(
         'Success',
         'Your password has been updated. Please log in with your new password.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Sign out ensuring clean state for re-login
-              supabase.auth.signOut().then(() => {
-                setIsResetMode(false);
-                setPassword('');
-              });
-            },
-          },
-        ]
+        'checkmark-circle',
+        () => {
+          // Sign out ensuring clean state for re-login
+          supabase.auth.signOut().then(() => {
+            setAlertConfig(prev => ({ ...prev, visible: false }));
+            setIsResetMode(false);
+            setPassword('');
+          });
+        }
       );
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to update password: ' + error.message);
+      showAlert('Error', 'Failed to update password: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -204,6 +232,15 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <PremiumAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        icon={alertConfig.icon as any}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      // If PremiumAlert supports custom confirm text, we use it, otherwise default
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

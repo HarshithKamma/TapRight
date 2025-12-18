@@ -79,11 +79,17 @@ export default function ProfileScreen() {
     const [cardNames, setCardNames] = useState<string[]>([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
-    const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        confirmText: '',
+        isDelete: false,
+    });
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (logoutModalVisible) {
+        if (modalConfig.visible) {
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 200,
@@ -96,7 +102,7 @@ export default function ProfileScreen() {
                 useNativeDriver: true,
             }).start();
         }
-    }, [logoutModalVisible]);
+    }, [modalConfig.visible]);
 
     useEffect(() => {
         loadUserProfile();
@@ -129,13 +135,40 @@ export default function ProfileScreen() {
 
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setLogoutModalVisible(true);
+        setModalConfig({
+            visible: true,
+            title: 'Log Out',
+            message: 'Are you sure you want to log out of your account?',
+            confirmText: 'Log Out',
+            isDelete: false,
+        });
     };
 
-    const confirmLogout = async () => {
-        setLogoutModalVisible(false);
-        // Small delay to let modal close smoothly
+    const handleDeleteAccount = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        setModalConfig({
+            visible: true,
+            title: 'Delete Account',
+            message: 'We are sorry to see you go. This action is irreversible. All your data will be permanently removed. Are you sure?',
+            confirmText: 'Delete',
+            isDelete: true,
+        });
+    };
+
+    const handleConfirmAction = async () => {
+        setModalConfig(prev => ({ ...prev, visible: false }));
+
+        // Small delay to let modal close gracefully
         setTimeout(async () => {
+            if (modalConfig.isDelete) {
+                try {
+                    const { error } = await supabase.rpc('delete_user');
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('Account deletion error (check backend logs):', err);
+                }
+            }
+
             await AsyncStorage.clear();
             await supabase.auth.signOut();
             router.replace('/');
@@ -160,34 +193,38 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" />
 
-            {/* Custom Logout Modal */}
-            {logoutModalVisible && (
+            {/* Custom Modal (Logout / Delete) */}
+            {modalConfig.visible && (
                 <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
                     <TouchableOpacity
                         style={styles.modalBackdrop}
                         activeOpacity={1}
-                        onPress={() => setLogoutModalVisible(false)}
+                        onPress={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                     />
                     <View style={styles.modalContent}>
-                        <View style={styles.modalIconContainer}>
-                            <Ionicons name="log-out" size={32} color={COLORS.error} />
+                        <View style={[styles.modalIconContainer, modalConfig.isDelete && { backgroundColor: '#fee2e2' }]}>
+                            <Ionicons
+                                name={modalConfig.isDelete ? "trash-outline" : "log-out-outline"}
+                                size={32}
+                                color={COLORS.error}
+                            />
                         </View>
-                        <Text style={styles.modalTitle}>Log Out</Text>
-                        <Text style={styles.modalMessage}>Are you sure you want to log out of your account?</Text>
+                        <Text style={styles.modalTitle}>{modalConfig.title}</Text>
+                        <Text style={styles.modalMessage}>{modalConfig.message}</Text>
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() => setLogoutModalVisible(false)}
+                                onPress={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                             >
                                 <Text style={styles.cancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={[styles.modalButton, styles.logoutConfirmButton]}
-                                onPress={confirmLogout}
+                                onPress={handleConfirmAction}
                             >
-                                <Text style={styles.logoutConfirmText}>Log Out</Text>
+                                <Text style={styles.logoutConfirmText}>{modalConfig.confirmText}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -278,6 +315,18 @@ export default function ProfileScreen() {
                         <View style={styles.separator} />
                         <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPolicy}>
                             <SettingItem icon="shield-checkmark-outline" title="Privacy Policy" type="link" />
+                        </TouchableOpacity>
+                        <View style={styles.separator} />
+                        <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
+                            <View style={styles.settingItem}>
+                                <View style={styles.settingLeft}>
+                                    <View style={[styles.iconContainer, { backgroundColor: '#fee2e2' }]}>
+                                        <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                                    </View>
+                                    <Text style={[styles.settingTitle, { color: COLORS.error }]}>Delete Account</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+                            </View>
                         </TouchableOpacity>
                     </View>
                 </View>

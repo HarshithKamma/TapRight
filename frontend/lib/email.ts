@@ -35,7 +35,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
     const subject = 'Welcome to TapRight!';
     const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1 style="color: #4F46E5;">Welcome to TapRight, ${name}!</h1>
+      <h1 style="color: #26e3e3ff;">Welcome to TapRight, ${name}!</h1>
       <p>We are thrilled to have you on board.</p>
       <p>TapRight helps you maximize your credit card rewards effortlessly.</p>
       <p>Get started by adding your cards and checking your location!</p>
