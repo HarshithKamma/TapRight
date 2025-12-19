@@ -28,13 +28,16 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Custom Alert State
+  // Custom Alert State
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     title: '',
     message: '',
     icon: 'notifications' as any,
     onConfirm: () => { },
+    onCancel: undefined as (() => void) | undefined,
     confirmText: 'OK',
+    cancelText: '',
   });
 
   const showAlert = (title: string, message: string, icon = 'alert-circle', onConfirm = () => setAlertConfig(prev => ({ ...prev, visible: false }))) => {
@@ -44,7 +47,9 @@ export default function LoginScreen() {
       message,
       icon: icon as any,
       onConfirm,
+      onCancel: undefined,
       confirmText: 'OK',
+      cancelText: '',
     });
   };
 
@@ -129,7 +134,20 @@ export default function LoginScreen() {
       if (message.includes('Invalid login credentials')) {
         message = "User doesn't exist or invalid password.";
       }
-      showAlert('Login Failed', message, 'alert-circle');
+
+      setAlertConfig({
+        visible: true,
+        title: 'Login Failed',
+        message: message,
+        icon: 'alert-circle',
+        confirmText: 'Try Again',
+        cancelText: 'Forgot Password',
+        onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
+        onCancel: () => {
+          setAlertConfig(prev => ({ ...prev, visible: false }));
+          setIsResetMode(true);
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -238,8 +256,9 @@ export default function LoginScreen() {
         message={alertConfig.message}
         icon={alertConfig.icon as any}
         onConfirm={alertConfig.onConfirm}
-        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-      // If PremiumAlert supports custom confirm text, we use it, otherwise default
+        onCancel={alertConfig.onCancel || (() => setAlertConfig(prev => ({ ...prev, visible: false })))}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -295,6 +314,7 @@ export default function LoginScreen() {
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={!showPassword}
+                      autoCapitalize="none"
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                       <Ionicons
@@ -413,6 +433,7 @@ export default function LoginScreen() {
                       value={newPassword}
                       onChangeText={setNewPassword}
                       secureTextEntry={!showPassword}
+                      autoCapitalize="none"
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                       <Ionicons

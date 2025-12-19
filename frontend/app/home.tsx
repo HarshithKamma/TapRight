@@ -111,15 +111,17 @@ export default function HomeScreen() {
     message: '',
     icon: 'notifications' as keyof typeof Ionicons.glyphMap,
     confirmText: 'Got it!',
+    cancelText: '',
     onConfirm: () => setAlertVisible(false),
   });
 
-  const showPremiumAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications') => {
+  const showPremiumAlert = (title: string, message: string, icon: keyof typeof Ionicons.glyphMap = 'notifications', cancelText = '') => {
     setAlertConfig({
       title,
       message,
       icon,
       confirmText: 'Got it!',
+      cancelText: cancelText,
       onConfirm: () => setAlertVisible(false),
     });
     setAlertVisible(true);
@@ -509,7 +511,7 @@ export default function HomeScreen() {
         confirmText={alertConfig.confirmText}
         onConfirm={alertConfig.onConfirm}
         onCancel={() => setAlertVisible(false)}
-        cancelText="Close" // Optional, or hide cancel button if not needed for simple alerts
+        cancelText={alertConfig.cancelText}
       />
     </View>
   );

@@ -32,6 +32,8 @@ export default function EditProfileScreen() {
         title: '',
         message: '',
         icon: 'notifications' as any,
+        confirmText: 'OK',
+        cancelText: '',
         onConfirm: () => { },
     });
 
@@ -41,6 +43,8 @@ export default function EditProfileScreen() {
             title,
             message,
             icon: icon as any,
+            confirmText: 'OK',
+            cancelText: '',
             onConfirm: () => {
                 setAlertConfig(prev => ({ ...prev, visible: false }));
                 if (onConfirm) onConfirm();
@@ -122,6 +126,8 @@ export default function EditProfileScreen() {
                 title={alertConfig.title}
                 message={alertConfig.message}
                 icon={alertConfig.icon}
+                confirmText={alertConfig.confirmText}
+                cancelText={alertConfig.cancelText}
                 onConfirm={alertConfig.onConfirm}
                 onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
             />

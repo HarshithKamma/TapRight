@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,7 +13,7 @@ import {
     Linking,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
@@ -84,13 +84,13 @@ export default function ProfileScreen() {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
 
-    // Unified Alert Configuration
     const [alertConfig, setAlertConfig] = useState({
         visible: false,
         title: '',
         message: '',
         icon: 'notifications' as any,
         confirmText: 'OK',
+        cancelText: '',
         isDelete: false, // Keep specific flag for logic 
         onConfirm: () => { }, // Default no-op
     });
@@ -102,6 +102,7 @@ export default function ProfileScreen() {
             message,
             icon: icon as any,
             confirmText: 'OK',
+            cancelText: '',
             isDelete: false,
             onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
         });
@@ -115,6 +116,7 @@ export default function ProfileScreen() {
             message: 'Are you sure you want to log out of your account?',
             icon: 'log-out-outline',
             confirmText: 'Log Out',
+            cancelText: 'Cancel',
             isDelete: false,
             onConfirm: handleConfirmAction,
         });
@@ -128,6 +130,7 @@ export default function ProfileScreen() {
             message: 'We are sorry to see you go. This action is irreversible. All your data will be permanently removed. Are you sure?',
             icon: 'trash-outline',
             confirmText: 'Delete',
+            cancelText: 'Cancel',
             isDelete: true,
             onConfirm: handleConfirmAction,
         });
@@ -153,7 +156,55 @@ export default function ProfileScreen() {
         }, 300);
     };
 
-    // ... (existing useEffects and loadUserProfile)
+    useEffect(() => {
+        loadUserProfile();
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadUserProfile();
+        }, [])
+    );
+
+    const loadUserProfile = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const fullName = user.user_metadata?.full_name || 'User';
+                // Get initials (first letter of first and last name, or just first two letters)
+                const names = fullName.trim().split(' ');
+                let initials = '';
+                if (names.length >= 2) {
+                    initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
+                } else if (names.length === 1) {
+                    initials = names[0].slice(0, 2).toUpperCase();
+                }
+
+                setUser({
+                    name: fullName,
+                    email: user.email,
+                    initials: initials
+                });
+
+                // Fetch cards
+                const { data: userCards, error } = await supabase
+                    .from('user_cards')
+                    .select('credit_cards (name)')
+                    .eq('user_id', user.id);
+
+                if (error) {
+                    console.error('Error fetching cards:', error);
+                }
+
+                if (userCards) {
+                    const names = userCards.map((item: any) => item.credit_cards?.name).filter(Boolean);
+                    setCardNames(names);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+        }
+    };
 
     const handleHelpCenter = async () => {
         const url = 'mailto:info@tapright.app';
@@ -180,6 +231,8 @@ export default function ProfileScreen() {
                 title={alertConfig.title}
                 message={alertConfig.message}
                 icon={alertConfig.icon}
+                confirmText={alertConfig.confirmText}
+                cancelText={alertConfig.cancelText}
                 onConfirm={alertConfig.onConfirm}
                 onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
             />
@@ -255,6 +308,24 @@ export default function ProfileScreen() {
                             value={locationEnabled}
                             onValueChange={setLocationEnabled}
                         />
+                    </View>
+                </View>
+
+                {/* Security Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Security</Text>
+                    <View style={styles.sectionContent}>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/change-password' as any)}>
+                            <View style={styles.settingItem}>
+                                <View style={styles.settingLeft}>
+                                    <View style={[styles.iconContainer, { backgroundColor: COLORS.surfaceHighlight }]}>
+                                        <Ionicons name="lock-closed-outline" size={20} color={COLORS.textPrimary} />
+                                    </View>
+                                    <Text style={styles.settingTitle}>Change Password</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
 

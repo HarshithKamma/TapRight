@@ -33,28 +33,27 @@ export const logVisit = async (userId: string, merchant: any): Promise<boolean> 
 
         const shouldNotify = !recentVisit || recentVisit.length === 0;
 
-        // 2. ALWAYS Log the visit for Trends data
-        const { error } = await supabase.from('location_history').insert({
-            user_id: userId,
-            merchant_name: merchant.name,
-            category: merchant.category,
-            latitude: merchant.latitude,
-            longitude: merchant.longitude,
-            visited_at: new Date().toISOString(),
-        });
+        // 2. Log visit only if it's new (prevents duplicate visit counts)
+        if (shouldNotify) {
+            const { error } = await supabase.from('location_history').insert({
+                user_id: userId,
+                merchant_name: merchant.name,
+                category: merchant.category,
+                latitude: merchant.latitude,
+                longitude: merchant.longitude,
+                visited_at: new Date().toISOString(),
+            });
 
-        if (error) {
-            console.error('Supabase insert error:', error.message);
-            // Even if logging fails, we might still want to notify if it was time, 
-            // but for safety let's return false to avoid spam if DB is down.
-            return false;
-        } else {
-            if (shouldNotify) {
-                console.log('✅ Visit logged (New Context) -> Notify:', merchant.name);
-            } else {
-                console.log('📝 Visit logged (Silent Update) -> No Notify:', merchant.name);
+            if (error) {
+                console.error('Supabase insert error:', error.message);
+                return false;
             }
-            return shouldNotify; // True = Notify, False = Silent
+
+            console.log('✅ Visit logged (New Context) -> Notify:', merchant.name);
+            return true;
+        } else {
+            console.log('⏳ Duplicate visit detected (Skipped) -> No Notify:', merchant.name);
+            return false;
         }
     } catch (error) {
         console.error('Failed to log visit:', error);

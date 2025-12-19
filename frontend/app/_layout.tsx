@@ -11,6 +11,7 @@ export default function Layout() {
             <Stack.Screen name="signup" />
             <Stack.Screen name="profile" />
             <Stack.Screen name="edit-profile" />
+            <Stack.Screen name="change-password" />
             <Stack.Screen name="card-selection" options={{ presentation: 'modal' }} />
             <Stack.Screen name="questionnaire" options={{ gestureEnabled: false }} />
             <Stack.Screen name="permissions" options={{ gestureEnabled: false }} />
