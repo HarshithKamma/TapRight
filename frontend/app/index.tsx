@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Dimensions, StatusBar, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,12 +81,17 @@ export default function SplashScreen() {
     opacity: 0.3 + Math.random() * 0.4,
   }))).current;
 
+  const [checkingSession, setCheckingSession] = useState(true);
+
   useEffect(() => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         // User is logged in, redirect to home
         router.replace('/home');
+      } else {
+        // No session, show the buttons
+        setCheckingSession(false);
       }
     });
 
@@ -133,24 +138,27 @@ export default function SplashScreen() {
           </View>
         </View>
 
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.push('/signup')}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.primaryButtonText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
-          </TouchableOpacity>
+        {/* Only show buttons if we are done checking session and the user is NOT logged in */}
+        {!checkingSession && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => router.push('/signup')}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+              <Ionicons name="arrow-forward" size={20} color="white" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.secondaryButtonText}>I have an account</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push('/login')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.secondaryButtonText}>I have an account</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </Animated.View>
     </View>
   );
