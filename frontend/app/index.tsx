@@ -85,15 +85,22 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.log('Session error:', error.message);
+        supabase.auth.signOut();
+        setCheckingSession(false);
+        return;
+      }
+
+      if (data?.session) {
         // User is logged in, redirect to home
         router.replace('/home');
       } else {
         // No session, show the buttons
         setCheckingSession(false);
       }
-    });
+    }).catch(() => setCheckingSession(false));
 
     Animated.parallel([
       Animated.timing(fadeAnim, {

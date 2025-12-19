@@ -171,8 +171,10 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
 
         if (location) {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                const { data, error } = await supabase.auth.getUser();
+                if (error || !data?.user) return;
+
+                const user = data.user;
 
                 const result = await checkLocation(location.coords.latitude, location.coords.longitude, user.id);
 
