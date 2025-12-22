@@ -5,6 +5,8 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    Linking,
+    Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +14,20 @@ import { COLORS } from '../constants/Colors';
 
 export default function PrivacyPolicyScreen() {
     const router = useRouter();
+
+    const handleEmailPress = async () => {
+        const url = 'mailto:info@tapright.app';
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (canOpen) {
+                await Linking.openURL(url);
+            } else {
+                Alert.alert('Error', 'No email client available.');
+            }
+        } catch (err) {
+            Alert.alert('Error', 'Could not open email client.');
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -66,7 +82,13 @@ export default function PrivacyPolicyScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>5. Contact Us</Text>
                     <Text style={styles.paragraph}>
-                        If you have any questions about this Privacy Policy, please contact us at info@tapright.app.
+                        If you have any questions about this Privacy Policy, please contact us at{' '}
+                        <Text
+                            style={{ color: COLORS.accent, textDecorationLine: 'underline' }}
+                            onPress={handleEmailPress}
+                        >
+                            info@tapright.app
+                        </Text>.
                     </Text>
                 </View>
 
