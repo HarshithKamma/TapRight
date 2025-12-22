@@ -115,8 +115,8 @@ export default function QuestionnaireScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <View style={styles.inputIconWrap}>
-                <Ionicons name="home" size={20} color={COLORS.textSecondary} />
+              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                <Ionicons name="home" size={20} color="#3b82f6" />
               </View>
               <TextInput
                 style={styles.input}
@@ -129,8 +129,8 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={styles.inputIconWrap}>
-                <Ionicons name="card" size={20} color={COLORS.textSecondary} />
+              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+                <Ionicons name="card" size={20} color="#8b5cf6" />
               </View>
               <TextInput
                 style={styles.input}
@@ -143,8 +143,8 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={styles.inputIconWrap}>
-                <Ionicons name="cash" size={20} color={COLORS.textSecondary} />
+              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+                <Ionicons name="cash" size={20} color={COLORS.success} />
               </View>
               <TextInput
                 style={styles.input}
@@ -157,8 +157,8 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={styles.inputIconWrap}>
-                <Ionicons name="car" size={20} color={COLORS.textSecondary} />
+              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="car" size={20} color={COLORS.warning} />
               </View>
               <TextInput
                 style={styles.input}
