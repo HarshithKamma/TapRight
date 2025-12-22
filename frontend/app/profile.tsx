@@ -91,7 +91,6 @@ export default function ProfileScreen() {
         icon: 'notifications' as any,
         confirmText: 'OK',
         cancelText: '',
-        isDelete: false, // Keep specific flag for logic 
         onConfirm: () => { }, // Default no-op
     });
 
@@ -103,7 +102,6 @@ export default function ProfileScreen() {
             icon: icon as any,
             confirmText: 'OK',
             cancelText: '',
-            isDelete: false,
             onConfirm: () => setAlertConfig(prev => ({ ...prev, visible: false })),
         });
     };
@@ -117,21 +115,6 @@ export default function ProfileScreen() {
             icon: 'log-out-outline',
             confirmText: 'Log Out',
             cancelText: 'Cancel',
-            isDelete: false,
-            onConfirm: handleConfirmAction,
-        });
-    };
-
-    const handleDeleteAccount = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        setAlertConfig({
-            visible: true,
-            title: 'Delete Account',
-            message: 'We are sorry to see you go. This action is irreversible. All your data will be permanently removed. Are you sure?',
-            icon: 'trash-outline',
-            confirmText: 'Delete',
-            cancelText: 'Cancel',
-            isDelete: true,
             onConfirm: handleConfirmAction,
         });
     };
@@ -139,21 +122,10 @@ export default function ProfileScreen() {
     const handleConfirmAction = async () => {
         setAlertConfig(prev => ({ ...prev, visible: false }));
 
-        // Small delay to let modal close gracefully
-        setTimeout(async () => {
-            if (alertConfig.isDelete) {
-                try {
-                    const { error } = await supabase.rpc('delete_user');
-                    if (error) throw error;
-                } catch (err) {
-                    console.error('Account deletion error (check backend logs):', err);
-                }
-            }
-
-            await AsyncStorage.clear();
-            await supabase.auth.signOut();
-            router.replace('/');
-        }, 300);
+        // Logout logic
+        await AsyncStorage.clear();
+        await supabase.auth.signOut();
+        router.replace('/');
     };
 
     useEffect(() => {
@@ -236,6 +208,8 @@ export default function ProfileScreen() {
                 onConfirm={alertConfig.onConfirm}
                 onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
             />
+
+
 
             {/* Header */}
             <View style={styles.header}>
@@ -340,18 +314,7 @@ export default function ProfileScreen() {
                         <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPolicy}>
                             <SettingItem icon="shield-checkmark-outline" title="Privacy Policy" type="link" />
                         </TouchableOpacity>
-                        <View style={styles.separator} />
-                        <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
-                            <View style={styles.settingItem}>
-                                <View style={styles.settingLeft}>
-                                    <View style={[styles.iconContainer, { backgroundColor: '#fee2e2' }]}>
-                                        <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-                                    </View>
-                                    <Text style={[styles.settingTitle, { color: COLORS.error }]}>Delete Account</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-                            </View>
-                        </TouchableOpacity>
+
                     </View>
                 </View>
 

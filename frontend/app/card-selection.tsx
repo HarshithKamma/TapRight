@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,8 @@ export default function WalletEditorScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Alerts
-  const [cardToRemove, setCardToRemove] = useState<CreditCard | null>(null);
+  const cardToRemoveRef = useRef<CreditCard | null>(null);
+
   // Unified Alert Configuration
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
@@ -173,7 +174,7 @@ export default function WalletEditorScreen() {
 
   const confirmRemove = (card: CreditCard) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setCardToRemove(card);
+    cardToRemoveRef.current = card;
     setAlertConfig({
       visible: true,
       title: 'Remove Card?',
@@ -187,17 +188,15 @@ export default function WalletEditorScreen() {
   };
 
   const executeRemove = async () => {
-    // Note: cardToRemove relies on closure or state? State is safer here but executeRemove needs to know WHO to remove.
-    // However, since executeRemove is closing over the scope or using state?
-    // Let's use the state `cardToRemove` which we set in confirmRemove.
-    if (!cardToRemove) return;
+    const cardToDelete = cardToRemoveRef.current;
+    if (!cardToDelete) return;
 
     // Close alert first
     setAlertConfig(prev => ({ ...prev, visible: false }));
 
     // Optimistic Remove: Use functional update
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setUserCards(prev => prev.filter(c => c.id !== cardToRemove.id));
+    setUserCards(prev => prev.filter(c => c.id !== cardToDelete.id));
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -207,10 +206,10 @@ export default function WalletEditorScreen() {
         .from('user_cards')
         .delete()
         .eq('user_id', user.id)
-        .eq('card_id', cardToRemove.id);
+        .eq('card_id', cardToDelete.id);
 
       if (error) throw error;
-      console.log('Deleted card:', cardToRemove.name);
+      console.log('Deleted card:', cardToDelete.name);
 
       // Sync names to profile
       await syncProfileCardNames(user.id);

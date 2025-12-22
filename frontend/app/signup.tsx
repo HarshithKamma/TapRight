@@ -242,7 +242,18 @@ export default function SignupScreen() {
       }
     } catch (error: any) {
       setLoading(false);
-      showAlert('Signup Failed', error.message || 'Please try again', 'alert-circle');
+
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('already registered')) {
+        showAlert(
+          'Account Exists',
+          'It looks like you already have an account with this email. Would you like to log in instead?',
+          'person',
+          () => router.replace('/login')
+        );
+      } else {
+        showAlert('Signup Failed', errorMessage || 'Please try again', 'alert-circle');
+      }
     }
   };
 

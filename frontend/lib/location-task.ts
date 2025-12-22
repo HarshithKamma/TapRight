@@ -162,7 +162,11 @@ export const checkLocation = async (latitude: number, longitude: number, userId:
 // Define background task
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
     if (error) {
-        console.error('Background location error:', error);
+        if (error.message && error.message.includes('kCLErrorDomain Code=0')) {
+            console.warn('⚠️ Background location indeterminate. If using Simulator, go to Features > Location and select a location.');
+        } else {
+            console.error('Background location error:', error);
+        }
         return;
     }
     if (data) {
