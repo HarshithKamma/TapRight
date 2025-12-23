@@ -69,7 +69,7 @@ const MoneyDrop = ({ delay, startX, duration, size, opacity }: { delay: number, 
 export default function SplashScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, isDark);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -157,7 +157,7 @@ export default function SplashScreen() {
               activeOpacity={0.9}
             >
               <Text style={styles.primaryButtonText}>Get Started</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
+              <Ionicons name="arrow-forward" size={20} color={colors.surface} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -174,7 +174,7 @@ export default function SplashScreen() {
   );
 }
 
-const makeStyles = (colors: any) => StyleSheet.create({
+const makeStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -205,7 +205,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: colors.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(28, 25, 23, 0.05)', // Dynamic glow
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(28, 25, 23, 0.05)', // Fixed: now uses isDark correctly
     transform: [{ scale: 1.2 }],
   },
   logoImage: {

@@ -13,6 +13,8 @@ import {
     Modal,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
+import * as Location from 'expo-location';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -160,8 +162,50 @@ export default function ProfileScreen() {
     useFocusEffect(
         useCallback(() => {
             loadUserProfile();
+            loadPermissionStatus();
         }, [])
     );
+
+    // Load actual permission status from system
+    const loadPermissionStatus = async () => {
+        try {
+            const notifStatus = await Notifications.getPermissionsAsync();
+            setNotificationsEnabled(notifStatus.status === 'granted');
+
+            const locStatus = await Location.getForegroundPermissionsAsync();
+            setLocationEnabled(locStatus.status === 'granted');
+        } catch (error) {
+            console.warn('Failed to load permission status:', error);
+        }
+    };
+
+    // Handle notification toggle
+    const handleNotificationToggle = async (enabled: boolean) => {
+        if (enabled) {
+            const { status } = await Notifications.requestPermissionsAsync();
+            setNotificationsEnabled(status === 'granted');
+            if (status !== 'granted') {
+                showAlert('Permission Denied', 'Please enable notifications in your device settings.', 'notifications');
+            }
+        } else {
+            // Can't programmatically disable - just update UI and inform user
+            showAlert('Disable Notifications', 'To disable notifications, please go to your device Settings > TapRight > Notifications.', 'settings-outline');
+        }
+    };
+
+    // Handle location toggle
+    const handleLocationToggle = async (enabled: boolean) => {
+        if (enabled) {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setLocationEnabled(status === 'granted');
+            if (status !== 'granted') {
+                showAlert('Permission Denied', 'Please enable location in your device settings.', 'location');
+            }
+        } else {
+            // Can't programmatically disable - just update UI and inform user
+            showAlert('Disable Location', 'To disable location services, please go to your device Settings > TapRight > Location.', 'settings-outline');
+        }
+    };
 
     const loadUserProfile = async () => {
         try {
@@ -335,7 +379,7 @@ export default function ProfileScreen() {
                             icon="notifications-outline"
                             title="Push Notifications"
                             value={notificationsEnabled}
-                            onValueChange={setNotificationsEnabled}
+                            onValueChange={handleNotificationToggle}
                             colors={colors}
                             styles={styles}
                         />
@@ -344,7 +388,7 @@ export default function ProfileScreen() {
                             icon="location-outline"
                             title="Location Services"
                             value={locationEnabled}
-                            onValueChange={setLocationEnabled}
+                            onValueChange={handleLocationToggle}
                             colors={colors}
                             styles={styles}
                         />

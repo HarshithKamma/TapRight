@@ -31,7 +31,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Custom Alert State
-  // Custom Alert State
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     title: '',

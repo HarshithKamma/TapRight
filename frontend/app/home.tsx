@@ -395,8 +395,17 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadUserData();
+      // Note: loadUserData uses startBackgroundTracking which is stable.
     }, [])
   );
+
+  // Dynamic greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning,';
+    if (hour < 18) return 'Good afternoon,';
+    return 'Good evening,';
+  };
 
   const toggleTracking = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -435,7 +444,7 @@ export default function HomeScreen() {
 
       <View style={dynamicStyles.header}>
         <View>
-          <Text style={dynamicStyles.greeting}>Good evening,</Text>
+          <Text style={dynamicStyles.greeting}>{getGreeting()}</Text>
           <Text style={dynamicStyles.userName}>{user?.name.split(' ')[0] || 'User'}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/profile')} style={dynamicStyles.profileButton}>

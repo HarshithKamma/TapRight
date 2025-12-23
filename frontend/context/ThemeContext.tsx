@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/Colors';
 
@@ -54,7 +54,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const colors = isDark ? DarkColors : LightColors;
 
     if (!isLoaded) {
-        return null; // Or a splash screen
+        // Return a minimal loading screen to avoid flash of no content
+        return (
+            <View style={{ flex: 1, backgroundColor: LightColors.background }} />
+        );
     }
 
     return (
