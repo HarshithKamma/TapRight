@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'rea
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -28,14 +28,17 @@ export default function PremiumAlert({
     onConfirm,
     onCancel,
 }: PremiumAlertProps) {
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
+
     return (
         <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
-                <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+                <BlurView intensity={20} style={StyleSheet.absoluteFill} tint={isDark ? "dark" : "light"} />
                 <View style={styles.alertContainer}>
                     <View style={styles.iconContainer}>
                         <LinearGradient
-                            colors={[COLORS.accent, '#2980b9']}
+                            colors={[colors.accent, '#2980b9']}
                             style={styles.iconGradient}
                         >
                             <Ionicons name={icon} size={32} color="white" />
@@ -54,7 +57,7 @@ export default function PremiumAlert({
 
                         <TouchableOpacity onPress={onConfirm} style={[styles.confirmButtonWrapper, !cancelText && styles.confirmButtonWrapperFull]}>
                             <LinearGradient
-                                colors={[COLORS.accent, '#2980b9']}
+                                colors={[colors.accent, '#2980b9']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.confirmButton}
@@ -69,7 +72,7 @@ export default function PremiumAlert({
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         justifyContent: 'center',
@@ -78,13 +81,13 @@ const styles = StyleSheet.create({
     },
     alertContainer: {
         width: width * 0.85,
-        backgroundColor: COLORS.surface, // White background
+        backgroundColor: colors.surface, // Dynamic background
         borderRadius: 28,
         padding: 24,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: COLORS.border,
-        shadowColor: COLORS.shadow,
+        borderColor: colors.border,
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.2, // Softer shadow for light theme
         shadowRadius: 20,
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
     },
     iconContainer: {
         marginBottom: 16,
-        shadowColor: COLORS.accent,
+        shadowColor: colors.accent,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.2,
         shadowRadius: 12,
@@ -108,13 +111,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: COLORS.textPrimary, // Dark text
+        color: colors.textPrimary, // Dynamic text
         marginBottom: 8,
         textAlign: 'center',
     },
     message: {
         fontSize: 16,
-        color: COLORS.textSecondary, // Grey text
+        color: colors.textSecondary, // Dynamic text
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 22,
@@ -132,18 +135,18 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         borderRadius: 16,
-        backgroundColor: COLORS.surfaceSoft, // Light grey background
+        backgroundColor: colors.surfaceSoft, // Dynamic background
         alignItems: 'center',
         justifyContent: 'center',
     },
     cancelText: {
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         fontSize: 16,
         fontWeight: '600',
     },
     confirmButtonWrapper: {
         flex: 1,
-        shadowColor: COLORS.accent,
+        shadowColor: colors.accent,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

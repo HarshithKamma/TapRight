@@ -21,7 +21,7 @@ import { supabase } from '../lib/supabase';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import { LOCATION_TASK_NAME, checkLocation } from '../lib/location-task';
 import PremiumAlert from '../components/PremiumAlert';
 import * as Haptics from 'expo-haptics';
@@ -52,7 +52,7 @@ Notifications.setNotificationHandler({
 });
 
 // Custom Animated Switch Component
-const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange: () => void }) => {
+const CustomSwitch = ({ value, onValueChange, colors }: { value: boolean, onValueChange: () => void, colors: any }) => {
   const animValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
 
   const backgroundColor = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [COLORS.surfaceHighlight, COLORS.success], // Grey to Green
+    outputRange: [colors.surfaceHighlight, colors.success], // Grey to Green
   });
 
   return (
@@ -86,8 +86,41 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
   );
 };
 
+// We define styles outside but will need to make them dynamic. 
+// For CustomSwitch inner static styles (dimensions), we can keep a static object or include in makeStyles.
+// To avoid strict type issues with 'styles' usage in CustomSwitch above, let's keep static parts static or pass styles.
+// Easier: Define static styles for switch dimensions here.
+const staticStyles = StyleSheet.create({
+  switchTrack: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.5,
+    elevation: 2,
+  },
+});
+
+const styles = staticStyles; // Alias for the component above to work without changes
+
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  // Generate dynamic styles
+  const dynamicStyles = makeStyles(colors);
+  // Merge or use dynamicStyles. simpler to just use dynamicStyles in the component and staticStyles in CustomSwitch if needed.
+  // Actually, let's just make 'styles' in this scope = dynamicStyles.
+
   const [user, setUser] = useState<User | null>(null);
   const [cards, setCards] = useState<UserCard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -397,36 +430,36 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={dynamicStyles.container}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View style={styles.header}>
+      <View style={dynamicStyles.header}>
         <View>
-          <Text style={styles.greeting}>Good evening,</Text>
-          <Text style={styles.userName}>{user?.name.split(' ')[0] || 'User'}</Text>
+          <Text style={dynamicStyles.greeting}>Good evening,</Text>
+          <Text style={dynamicStyles.userName}>{user?.name.split(' ')[0] || 'User'}</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/profile')} style={styles.profileButton}>
-          <Ionicons name="person-circle-outline" size={32} color={COLORS.textSecondary} />
+        <TouchableOpacity onPress={() => router.push('/profile')} style={dynamicStyles.profileButton}>
+          <Ionicons name="person-circle-outline" size={32} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        style={dynamicStyles.content}
+        contentContainerStyle={dynamicStyles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
         }
       >
         {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.statusIcon, { backgroundColor: trackingEnabled ? COLORS.success : COLORS.surfaceHighlight }]}>
-              <Ionicons name={trackingEnabled ? "radio" : "radio-outline"} size={18} color={trackingEnabled ? "white" : COLORS.textSecondary} />
+        <View style={dynamicStyles.statusCard}>
+          <View style={dynamicStyles.statusHeader}>
+            <View style={[dynamicStyles.statusIcon, { backgroundColor: trackingEnabled ? colors.success : colors.surfaceHighlight }]}>
+              <Ionicons name={trackingEnabled ? "radio" : "radio-outline"} size={18} color={trackingEnabled ? "white" : colors.textSecondary} />
             </View>
-            <Text style={styles.statusTitle}>Background Tracking</Text>
-            <CustomSwitch value={trackingEnabled} onValueChange={toggleTracking} />
+            <Text style={dynamicStyles.statusTitle}>Background Tracking</Text>
+            <CustomSwitch value={trackingEnabled} onValueChange={toggleTracking} colors={colors} />
           </View>
-          <Text style={styles.statusText}>
+          <Text style={dynamicStyles.statusText}>
             {trackingEnabled
               ? "TapRight is monitoring your location for rewards."
               : "Enable tracking to get automatic card recommendations."}
@@ -434,52 +467,52 @@ export default function HomeScreen() {
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.actionGrid}>
-          <TouchableOpacity style={styles.actionButton} onPress={checkCurrentLocation}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="scan" size={24} color={COLORS.accent} />
+        <View style={dynamicStyles.actionGrid}>
+          <TouchableOpacity style={dynamicStyles.actionButton} onPress={checkCurrentLocation}>
+            <View style={dynamicStyles.actionIcon}>
+              <Ionicons name="scan" size={24} color={colors.accent} />
             </View>
-            <Text style={styles.actionText}>Scan Location</Text>
+            <Text style={dynamicStyles.actionText}>Scan Location</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => {
+          <TouchableOpacity style={dynamicStyles.actionButton} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push('/trends');
           }}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="stats-chart" size={24} color={COLORS.accent} />
+            <View style={dynamicStyles.actionIcon}>
+              <Ionicons name="stats-chart" size={24} color={colors.accent} />
             </View>
-            <Text style={styles.actionText}>Insights</Text>
+            <Text style={dynamicStyles.actionText}>Insights</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => {
+          <TouchableOpacity style={dynamicStyles.actionButton} onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push('/card-selection');
           }}>
-            <View style={styles.actionIcon}>
+            <View style={dynamicStyles.actionIcon}>
               <Ionicons
                 name={cards.length > 0 ? "wallet-outline" : "add"}
                 size={24}
-                color={COLORS.textPrimary}
+                color={colors.textPrimary}
               />
             </View>
-            <Text style={styles.actionText}>
+            <Text style={dynamicStyles.actionText}>
               {cards.length > 0 ? "Manage Cards" : "Add Card"}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Wallet Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Wallet</Text>
+        <View style={dynamicStyles.section}>
+          <Text style={dynamicStyles.sectionTitle}>Your Wallet</Text>
 
           {cards.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="wallet-outline" size={48} color={COLORS.surfaceHighlight} />
-              <Text style={styles.emptyStateText}>No cards added yet.</Text>
+            <View style={dynamicStyles.emptyState}>
+              <Ionicons name="wallet-outline" size={48} color={colors.surfaceHighlight} />
+              <Text style={dynamicStyles.emptyStateText}>No cards added yet.</Text>
             </View>
           ) : (
-            <View style={styles.cardList}>
+            <View style={dynamicStyles.cardList}>
               {cards.map((card) => (
                 <TouchableOpacity
                   key={card.id}
@@ -517,10 +550,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -532,13 +565,13 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   profileButton: {
     padding: 4,
@@ -551,13 +584,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   statusCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.surfaceHighlight,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
@@ -579,11 +612,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   statusText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   actionGrid: {
@@ -593,7 +626,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 20,
     padding: 16,
     alignItems: 'center',
@@ -604,12 +637,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.surfaceHighlight,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -617,7 +650,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   section: {
     gap: 16,
@@ -625,20 +658,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   emptyState: {
     alignItems: 'center',
     padding: 40,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
+    borderColor: colors.surfaceHighlight,
     borderStyle: 'dashed',
   },
   emptyStateText: {
     marginTop: 12,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 14,
   },
   cardList: {
@@ -647,12 +680,12 @@ const styles = StyleSheet.create({
   cardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.surfaceHighlight,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -669,15 +702,15 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   cardIssuer: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   cardRewardBadge: {
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -685,7 +718,7 @@ const styles = StyleSheet.create({
   cardRewardText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.accent,
+    color: colors.accent,
   },
   switchTrack: {
     width: 50,

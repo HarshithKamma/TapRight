@@ -4,14 +4,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { COLORS } from '../constants/Colors';
-
-
-
+import { useTheme } from '../context/ThemeContext';
 import PremiumAlert from '../components/PremiumAlert';
 
 export default function PermissionsScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors);
+
   const [locationGranted, setLocationGranted] = useState(false);
   const [notificationGranted, setNotificationGranted] = useState(false);
 
@@ -108,7 +108,7 @@ export default function PermissionsScreen() {
       />
       <View style={styles.gradient}>
         <View style={styles.iconWrap}>
-          <Ionicons name="shield-checkmark" size={64} color={COLORS.accentMuted} />
+          <Ionicons name="shield-checkmark" size={64} color={colors.accentMuted} />
         </View>
         <Text style={styles.title}>Permissions Required</Text>
         <Text style={styles.subtitle}>
@@ -127,7 +127,7 @@ export default function PermissionsScreen() {
               <Ionicons
                 name={locationGranted ? 'checkmark-circle' : 'location'}
                 size={32}
-                color={locationGranted ? COLORS.success : COLORS.textSecondary}
+                color={locationGranted ? colors.success : colors.textSecondary}
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -137,7 +137,7 @@ export default function PermissionsScreen() {
               </Text>
             </View>
             {!locationGranted && (
-              <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
+              <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
             )}
           </TouchableOpacity>
 
@@ -152,7 +152,7 @@ export default function PermissionsScreen() {
               <Ionicons
                 name={notificationGranted ? 'checkmark-circle' : 'notifications'}
                 size={32}
-                color={notificationGranted ? COLORS.success : COLORS.textSecondary}
+                color={notificationGranted ? colors.success : colors.textSecondary}
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -162,7 +162,7 @@ export default function PermissionsScreen() {
               </Text>
             </View>
             {!notificationGranted && (
-              <Ionicons name="chevron-forward" size={24} color={COLORS.textSecondary} />
+              <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
             )}
           </TouchableOpacity>
         </View>
@@ -183,10 +183,10 @@ export default function PermissionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   gradient: {
     flex: 1,
@@ -195,12 +195,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 32,
     margin: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 28,
     shadowOffset: { width: 0, height: 14 },
@@ -213,13 +213,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     marginTop: 16,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12,
     textAlign: 'center',
     lineHeight: 24,
@@ -232,19 +232,19 @@ const styles = StyleSheet.create({
   permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 22,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.35,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
   permissionItemGranted: {
-    borderColor: COLORS.success,
+    borderColor: colors.success,
     shadowOpacity: 0.45,
   },
   permissionInfo: {
@@ -254,32 +254,32 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   permissionDescription: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
   continueButton: {
     width: '100%',
-    backgroundColor: COLORS.accent,
+    backgroundColor: colors.accent,
     borderRadius: 24,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: COLORS.shadow,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
     elevation: 14,
   },
   continueButtonDisabled: {
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: colors.surfaceHighlight,
     shadowOpacity: 0,
   },
   continueButtonText: {
-    color: COLORS.textPrimary,
+    color: colors.surface, // Corrected to surface (inverse)
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -289,10 +289,10 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: colors.surfaceHighlight,
     marginRight: 16,
   },
 });

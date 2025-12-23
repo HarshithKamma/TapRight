@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, Animated, Easing } from 'react-native';
 import Svg, { G, Circle } from 'react-native-svg';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -19,7 +19,7 @@ export const CATEGORY_COLORS: { [key: string]: string } = {
     'travel': '#2476faff', // Blue
     'gas': '#f59e0b', // Amber
     'shopping': '#8b5cf6', // Violet
-    'entertainment': '#09d3f6ff', // Cyan (Changed from Pink for better contrast)
+    'entertainment': '#09d3f6ff', // Cyan
     'general': '#6b7280', // Gray
     'default': '#6b7280'
 };
@@ -29,6 +29,9 @@ export const getCategoryColor = (category: string) => {
 };
 
 export default function DonutChart({ data, size = 220, thickness = 24 }: DonutChartProps) {
+    const { colors } = useTheme();
+    const styles = makeStyles(colors);
+
     if (data.length === 0) return null;
 
     const total = data.reduce((sum, item) => sum + item.count, 0);
@@ -79,7 +82,7 @@ export default function DonutChart({ data, size = 220, thickness = 24 }: DonutCh
                         cx={radius}
                         cy={radius}
                         r={circleRadius}
-                        stroke={COLORS.surfaceHighlight}
+                        stroke={colors.surfaceHighlight}
                         strokeWidth={thickness}
                         fill="transparent"
                     />
@@ -127,7 +130,7 @@ export default function DonutChart({ data, size = 220, thickness = 24 }: DonutCh
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         justifyContent: 'center',
         alignItems: 'center',
@@ -143,11 +146,11 @@ const styles = StyleSheet.create({
     totalCount: {
         fontSize: 36,
         fontWeight: '800',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     totalLabel: {
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: 1,
     }

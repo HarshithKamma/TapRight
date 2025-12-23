@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface CategoryTrend {
     category: string;
@@ -47,6 +47,9 @@ import PremiumAlert from '../components/PremiumAlert';
 
 export default function TrendsScreen() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
+
     const [loading, setLoading] = useState(true);
     const [trends, setTrends] = useState<CategoryTrend[]>([]);
     const [recommendations, setRecommendations] = useState<RecommendedCard[]>([]);
@@ -265,7 +268,7 @@ export default function TrendsScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.accent} />
+                <ActivityIndicator size="large" color={colors.accent} />
             </View>
         );
     }
@@ -282,7 +285,7 @@ export default function TrendsScreen() {
             />
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Spending Insights</Text>
             </View>
@@ -338,7 +341,7 @@ export default function TrendsScreen() {
 
                     {recommendations.length === 0 ? (
                         <View style={styles.emptyState}>
-                            <Ionicons name="card-outline" size={48} color={COLORS.textSecondary} />
+                            <Ionicons name="card-outline" size={48} color={colors.textSecondary} />
                             <Text style={styles.emptyText}>No recommendations.</Text>
                         </View>
                     ) : (
@@ -370,10 +373,10 @@ export default function TrendsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
@@ -384,25 +387,25 @@ const styles = StyleSheet.create({
         paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 16,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.surfaceHighlight,
+        borderBottomColor: colors.surfaceHighlight,
     },
     backButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
     title: {
         fontSize: 20,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     content: {
         padding: 24,
@@ -414,32 +417,32 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     sectionSubtitle: {
         fontSize: 14,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     emptyState: {
         padding: 24,
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
         borderStyle: 'dashed',
         gap: 8,
     },
     emptyText: {
         fontSize: 16,
         fontWeight: '600',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         marginTop: 8,
     },
     emptySubText: {
         fontSize: 14,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
     },
@@ -447,11 +450,11 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     trendItem: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
     },
     trendInfo: {
         flexDirection: 'row',
@@ -461,16 +464,16 @@ const styles = StyleSheet.create({
     trendName: {
         fontSize: 14,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     trendCount: {
         fontSize: 16,
         fontWeight: '800',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     progressBar: {
         height: 4,
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: colors.surfaceHighlight,
         borderRadius: 2,
         overflow: 'hidden',
         marginTop: 12,
@@ -481,12 +484,12 @@ const styles = StyleSheet.create({
     },
     cardItem: {
         flexDirection: 'row',
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
-        shadowColor: COLORS.shadow,
+        borderColor: colors.surfaceHighlight,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
@@ -510,16 +513,16 @@ const styles = StyleSheet.create({
     cardName: {
         fontSize: 16,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         flex: 1,
         marginRight: 8,
     },
     cardIssuer: {
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
     },
     matchBadge: {
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
@@ -530,7 +533,7 @@ const styles = StyleSheet.create({
     matchText: {
         fontSize: 10,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     cardAction: {
         paddingRight: 16,
@@ -543,12 +546,12 @@ const styles = StyleSheet.create({
     },
     trendCard: {
         width: '48%',
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
-        shadowColor: COLORS.shadow,
+        borderColor: colors.surfaceHighlight,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
@@ -572,7 +575,7 @@ const styles = StyleSheet.create({
     matchTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.success,
+        backgroundColor: colors.success,
         alignSelf: 'flex-start',
         paddingHorizontal: 12,
         paddingVertical: 6,
@@ -582,7 +585,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
         gap: 6,
         borderWidth: 2,
-        borderColor: COLORS.background, // Stroke effect
+        borderColor: colors.background, // Stroke effect
     },
     matchTagText: {
         color: 'white',

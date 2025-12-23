@@ -14,16 +14,14 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
-
-
-
-
-
+import { useTheme } from '../context/ThemeContext';
 import PremiumAlert from '../components/PremiumAlert';
 
 export default function QuestionnaireScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors);
+
   const [monthlyRent, setMonthlyRent] = useState('');
   const [monthlyExpenses, setMonthlyExpenses] = useState('');
   const [cardPayments, setCardPayments] = useState('');
@@ -100,7 +98,7 @@ export default function QuestionnaireScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.iconWrap}>
@@ -115,13 +113,13 @@ export default function QuestionnaireScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+              <View style={[styles.inputIconWrap, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)' }]}>
                 <Ionicons name="home" size={20} color="#3b82f6" />
               </View>
               <TextInput
                 style={styles.input}
                 placeholder="Monthly Rent ($)"
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={colors.placeholder}
                 value={monthlyRent}
                 onChangeText={setMonthlyRent}
                 keyboardType="numeric"
@@ -129,13 +127,13 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <View style={[styles.inputIconWrap, { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)' }]}>
                 <Ionicons name="card" size={20} color="#8b5cf6" />
               </View>
               <TextInput
                 style={styles.input}
                 placeholder="Monthly Card Payments ($)"
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={colors.placeholder}
                 value={cardPayments}
                 onChangeText={setCardPayments}
                 keyboardType="numeric"
@@ -143,13 +141,13 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
-                <Ionicons name="cash" size={20} color={COLORS.success} />
+              <View style={[styles.inputIconWrap, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)' }]}>
+                <Ionicons name="cash" size={20} color={colors.success} />
               </View>
               <TextInput
                 style={styles.input}
                 placeholder="Other Monthly Expenses ($)"
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={colors.placeholder}
                 value={monthlyExpenses}
                 onChangeText={setMonthlyExpenses}
                 keyboardType="numeric"
@@ -157,13 +155,13 @@ export default function QuestionnaireScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <View style={[styles.inputIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                <Ionicons name="car" size={20} color={COLORS.warning} />
+              <View style={[styles.inputIconWrap, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="car" size={20} color={colors.warning} />
               </View>
               <TextInput
                 style={styles.input}
                 placeholder="Monthly Car Payments ($)"
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={colors.placeholder}
                 value={carPayments}
                 onChangeText={setCarPayments}
                 keyboardType="numeric"
@@ -184,10 +182,10 @@ export default function QuestionnaireScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -203,26 +201,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     marginTop: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
   form: {
     width: '100%',
     marginTop: 28,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     padding: 24,
     borderRadius: 28,
     gap: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
@@ -231,35 +229,32 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 20,
     paddingHorizontal: 16,
     height: 58,
     borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputIcon: {
-    marginRight: 12,
+    borderColor: colors.border,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   submitButton: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: colors.accent,
     borderRadius: 20,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
-    shadowColor: COLORS.shadow,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.4,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
   },
   submitButtonText: {
-    color: 'white', // Force white text on dark button
+    color: colors.surface, // Force white text on dark button (or dynamic)
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -269,7 +264,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   skipButtonText: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -279,10 +274,10 @@ const styles = StyleSheet.create({
     borderRadius: 65,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.3,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -294,7 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: colors.surfaceHighlight,
     marginRight: 12,
   },
   iconImage: {
@@ -308,7 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 22,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     marginBottom: 20,
   },
 });

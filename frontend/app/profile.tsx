@@ -5,22 +5,23 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Alert,
     StatusBar,
     Animated,
     Easing,
     Pressable,
     Linking,
+    Modal,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
+import PremiumAlert from '../components/PremiumAlert';
 
-// Custom Animated Switch Component (Same as Home Screen)
-const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange: (val: boolean) => void }) => {
+// Custom Animated Switch Component
+const CustomSwitch = ({ value, onValueChange, colors }: { value: boolean, onValueChange: (val: boolean) => void, colors: any }) => {
     const animValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
     useEffect(() => {
@@ -39,7 +40,7 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
 
     const backgroundColor = animValue.interpolate({
         inputRange: [0, 1],
-        outputRange: [COLORS.surfaceHighlight, COLORS.success],
+        outputRange: [colors.surfaceHighlight, colors.success],
     });
 
     return (
@@ -47,18 +48,40 @@ const CustomSwitch = ({ value, onValueChange }: { value: boolean, onValueChange:
             Haptics.selectionAsync();
             onValueChange(!value);
         }}>
-            <Animated.View style={[styles.switchTrack, { backgroundColor }]}>
-                <Animated.View style={[styles.switchThumb, { transform: [{ translateX }] }]} />
+            <Animated.View style={[
+                {
+                    width: 50,
+                    height: 28,
+                    borderRadius: 14,
+                    padding: 2,
+                    justifyContent: 'center',
+                },
+                { backgroundColor }
+            ]}>
+                <Animated.View style={[
+                    {
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: 'white',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 2.5,
+                        elevation: 2,
+                    },
+                    { transform: [{ translateX }] }
+                ]} />
             </Animated.View>
         </Pressable>
     );
 };
 
-const SettingItem = ({ icon, title, value, onValueChange, type = 'toggle' }: any) => (
+const SettingItem = ({ icon, title, value, onValueChange, type = 'toggle', onPress, displayValue, colors, styles }: any) => (
     <View style={styles.settingItem}>
         <View style={styles.settingLeft}>
             <View style={styles.iconContainer}>
-                <Ionicons name={icon} size={20} color={COLORS.textPrimary} />
+                <Ionicons name={icon} size={20} color={colors.textPrimary} />
             </View>
             <Text style={styles.settingTitle}>{title}</Text>
         </View>
@@ -66,23 +89,27 @@ const SettingItem = ({ icon, title, value, onValueChange, type = 'toggle' }: any
             <CustomSwitch
                 value={value}
                 onValueChange={onValueChange}
+                colors={colors}
             />
         ) : (
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {displayValue && <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{displayValue}</Text>}
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+            </View>
         )}
     </View>
 );
 
-import PremiumAlert from '../components/PremiumAlert';
-
-// ... (existing imports)
-
 export default function ProfileScreen() {
     const router = useRouter();
+    const { theme, setTheme, colors, isDark } = useTheme();
+    const styles = makeStyles(colors, isDark);
+
     const [user, setUser] = useState<any>(null);
     const [cardNames, setCardNames] = useState<string[]>([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [locationEnabled, setLocationEnabled] = useState(true);
+    const [themeModalVisible, setThemeModalVisible] = useState(false);
 
     const [alertConfig, setAlertConfig] = useState({
         visible: false,
@@ -91,7 +118,7 @@ export default function ProfileScreen() {
         icon: 'notifications' as any,
         confirmText: 'OK',
         cancelText: '',
-        onConfirm: () => { }, // Default no-op
+        onConfirm: () => { },
     });
 
     const showAlert = (title: string, message: string, icon = 'alert-circle') => {
@@ -121,8 +148,6 @@ export default function ProfileScreen() {
 
     const handleConfirmAction = async () => {
         setAlertConfig(prev => ({ ...prev, visible: false }));
-
-        // Logout logic
         await AsyncStorage.clear();
         await supabase.auth.signOut();
         router.replace('/');
@@ -143,7 +168,6 @@ export default function ProfileScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const fullName = user.user_metadata?.full_name || 'User';
-                // Get initials (first letter of first and last name, or just first two letters)
                 const names = fullName.trim().split(' ');
                 let initials = '';
                 if (names.length >= 2) {
@@ -158,15 +182,10 @@ export default function ProfileScreen() {
                     initials: initials
                 });
 
-                // Fetch cards
                 const { data: userCards, error } = await supabase
                     .from('user_cards')
                     .select('credit_cards (name)')
                     .eq('user_id', user.id);
-
-                if (error) {
-                    console.error('Error fetching cards:', error);
-                }
 
                 if (userCards) {
                     const names = userCards.map((item: any) => item.credit_cards?.name).filter(Boolean);
@@ -180,23 +199,46 @@ export default function ProfileScreen() {
 
     const handleHelpCenter = async () => {
         const url = 'mailto:info@tapright.app';
-        const canOpen = await Linking.canOpenURL(url);
-        if (canOpen) {
-            await Linking.openURL(url);
-        } else {
+        try {
+            const canOpen = await Linking.canOpenURL(url);
+            if (canOpen) {
+                await Linking.openURL(url);
+            } else {
+                showAlert('Error', 'No email client available.');
+            }
+        } catch (err) {
             showAlert('Error', 'Could not open email client.');
         }
     };
-
-    // ... (rest of methods)
 
     const handlePrivacyPolicy = () => {
         router.push('/privacy-policy');
     };
 
+    const ThemeOption = ({ label, value, icon }: any) => (
+        <TouchableOpacity
+            style={[styles.themeOption, theme === value && styles.themeOptionActive]}
+            onPress={() => {
+                setTheme(value);
+                setThemeModalVisible(false);
+                Haptics.selectionAsync();
+            }}
+        >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={[styles.themeIcon, theme === value && { backgroundColor: colors.background }]}>
+                    <Ionicons name={icon} size={20} color={theme === value ? colors.textPrimary : colors.textSecondary} />
+                </View>
+                <Text style={[styles.themeText, theme === value && { color: colors.surface, fontWeight: '700' }]}>
+                    {label}
+                </Text>
+            </View>
+            {theme === value && <Ionicons name="checkmark-circle" size={24} color={colors.surface} />}
+        </TouchableOpacity>
+    );
+
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
             <PremiumAlert
                 visible={alertConfig.visible}
@@ -209,12 +251,32 @@ export default function ProfileScreen() {
                 onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
             />
 
+            {/* Theme Selection Modal */}
+            <Modal
+                visible={themeModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setThemeModalVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setThemeModalVisible(false)}>
+                    <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
+                        <Text style={styles.modalTitle}>Appearance</Text>
+                        <View style={{ gap: 8, width: '100%' }}>
+                            <ThemeOption label="Light" value="light" icon="sunny-outline" />
+                            <ThemeOption label="Dark" value="dark" icon="moon-outline" />
+                            <ThemeOption label="System" value="system" icon="phone-portrait-outline" />
+                        </View>
+                        <TouchableOpacity style={{ marginTop: 20, alignSelf: 'center' }} onPress={() => setThemeModalVisible(false)}>
+                            <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
 
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <View style={{ width: 40 }} />
@@ -248,8 +310,8 @@ export default function ProfileScreen() {
                                 <React.Fragment key={index}>
                                     <View style={styles.settingItem}>
                                         <View style={styles.settingLeft}>
-                                            <View style={[styles.iconContainer, { backgroundColor: COLORS.surfaceHighlight }]}>
-                                                <Ionicons name="card" size={16} color={COLORS.textSecondary} />
+                                            <View style={[styles.iconContainer, { backgroundColor: colors.surfaceHighlight }]}>
+                                                <Ionicons name="card" size={16} color={colors.textSecondary} />
                                             </View>
                                             <Text style={styles.settingTitle}>{name}</Text>
                                         </View>
@@ -259,7 +321,7 @@ export default function ProfileScreen() {
                             ))
                         ) : (
                             <View style={styles.settingItem}>
-                                <Text style={[styles.settingTitle, { color: COLORS.textSecondary }]}>No cards added</Text>
+                                <Text style={[styles.settingTitle, { color: colors.textSecondary }]}>No cards added</Text>
                             </View>
                         )}
                     </View>
@@ -274,6 +336,8 @@ export default function ProfileScreen() {
                             title="Push Notifications"
                             value={notificationsEnabled}
                             onValueChange={setNotificationsEnabled}
+                            colors={colors}
+                            styles={styles}
                         />
                         <View style={styles.separator} />
                         <SettingItem
@@ -281,7 +345,21 @@ export default function ProfileScreen() {
                             title="Location Services"
                             value={locationEnabled}
                             onValueChange={setLocationEnabled}
+                            colors={colors}
+                            styles={styles}
                         />
+                        <View style={styles.separator} />
+                        {/* Appearance Setting */}
+                        <TouchableOpacity style={styles.menuItem} onPress={() => setThemeModalVisible(true)}>
+                            <SettingItem
+                                icon="color-palette-outline"
+                                title="Appearance"
+                                type="link"
+                                displayValue={theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                colors={colors}
+                                styles={styles}
+                            />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -290,15 +368,13 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>Security</Text>
                     <View style={styles.sectionContent}>
                         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/change-password' as any)}>
-                            <View style={styles.settingItem}>
-                                <View style={styles.settingLeft}>
-                                    <View style={[styles.iconContainer, { backgroundColor: COLORS.surfaceHighlight }]}>
-                                        <Ionicons name="lock-closed-outline" size={20} color={COLORS.textPrimary} />
-                                    </View>
-                                    <Text style={styles.settingTitle}>Change Password</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-                            </View>
+                            <SettingItem
+                                icon="lock-closed-outline"
+                                title="Change Password"
+                                type="link"
+                                colors={colors}
+                                styles={styles}
+                            />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -308,19 +384,18 @@ export default function ProfileScreen() {
                     <Text style={styles.sectionTitle}>Support</Text>
                     <View style={styles.sectionContent}>
                         <TouchableOpacity style={styles.menuItem} onPress={handleHelpCenter}>
-                            <SettingItem icon="help-circle-outline" title="Help Center" type="link" />
+                            <SettingItem icon="help-circle-outline" title="Help Center" type="link" colors={colors} styles={styles} />
                         </TouchableOpacity>
                         <View style={styles.separator} />
                         <TouchableOpacity style={styles.menuItem} onPress={handlePrivacyPolicy}>
-                            <SettingItem icon="shield-checkmark-outline" title="Privacy Policy" type="link" />
+                            <SettingItem icon="shield-checkmark-outline" title="Privacy Policy" type="link" colors={colors} styles={styles} />
                         </TouchableOpacity>
-
                     </View>
                 </View>
 
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+                    <Ionicons name="log-out-outline" size={20} color={colors.error} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
 
@@ -330,10 +405,10 @@ export default function ProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -347,14 +422,14 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     content: {
         padding: 24,
@@ -362,12 +437,12 @@ const styles = StyleSheet.create({
     },
     profileCard: {
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         padding: 32,
         borderRadius: 32,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
-        shadowColor: COLORS.shadow,
+        borderColor: colors.surfaceHighlight,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.05,
         shadowRadius: 20,
         elevation: 4,
@@ -376,37 +451,37 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
     },
     avatarText: {
         fontSize: 32,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     userName: {
         fontSize: 24,
         fontWeight: '800',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     userEmail: {
         fontSize: 16,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 20,
     },
     editButton: {
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 100,
-        backgroundColor: COLORS.textPrimary,
+        backgroundColor: colors.textPrimary,
     },
     editButtonText: {
-        color: COLORS.surface,
+        color: colors.surface,
         fontWeight: '600',
         fontSize: 14,
     },
@@ -416,16 +491,16 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginLeft: 8,
     },
     sectionContent: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
         overflow: 'hidden',
     },
     settingItem: {
@@ -443,18 +518,18 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     settingTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     separator: {
         height: 1,
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: colors.surfaceHighlight,
         marginLeft: 64,
     },
     menuItem: {
@@ -464,126 +539,73 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#fee2e2', // Light red
+        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2', // Dynamic red bg
         padding: 16,
         borderRadius: 24,
         gap: 8,
         marginTop: 8,
     },
     logoutText: {
-        color: COLORS.error,
+        color: colors.error,
         fontSize: 16,
         fontWeight: '700',
     },
     versionText: {
         textAlign: 'center',
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         marginTop: 8,
     },
-    switchTrack: {
-        width: 50,
-        height: 28,
-        borderRadius: 14,
-        padding: 2,
-        justifyContent: 'center',
-    },
-    switchThumb: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2.5,
-        elevation: 2,
-    },
     modalOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        zIndex: 1000,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
     },
-    modalBackdrop: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
     modalContent: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 32,
         padding: 32,
         width: '100%',
         maxWidth: 340,
         alignItems: 'center',
-        shadowColor: COLORS.shadow,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.25,
         shadowRadius: 30,
         elevation: 10,
         shadowOffset: { width: 0, height: 10 },
     },
-    modalIconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#fee2e2',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-    },
     modalTitle: {
         fontSize: 24,
         fontWeight: '800',
-        color: COLORS.textPrimary,
-        marginBottom: 12,
+        color: colors.textPrimary,
+        marginBottom: 24,
         textAlign: 'center',
     },
-    modalMessage: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
-        textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 24,
-    },
-    modalButtons: {
+    themeOption: {
         flexDirection: 'row',
-        gap: 16,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: colors.surfaceSoft,
         width: '100%',
     },
-    modalButton: {
-        flex: 1,
-        height: 56,
-        borderRadius: 28,
+    themeOptionActive: {
+        backgroundColor: colors.textPrimary,
+    },
+    themeIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    cancelButton: {
-        backgroundColor: COLORS.surfaceSoft,
-    },
-    cancelButtonText: {
+    themeText: {
         fontSize: 16,
         fontWeight: '600',
-        color: COLORS.textPrimary,
-    },
-    logoutConfirmButton: {
-        backgroundColor: COLORS.error,
-        shadowColor: COLORS.error,
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-    },
-    logoutConfirmText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: 'white',
-    },
+        color: colors.textPrimary,
+    }
 });

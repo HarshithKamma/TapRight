@@ -19,7 +19,7 @@ import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import PremiumAlert from '../components/PremiumAlert';
 import { sendWelcomeEmail } from '../lib/email';
 
@@ -41,6 +41,9 @@ type AlertConfig = {
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors, isDark);
+
   const formValuesRef = React.useRef<FormFields>({
     name: '',
     email: '',
@@ -271,7 +274,7 @@ export default function SignupScreen() {
       {loading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.accent} />
+            <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>Creating your account...</Text>
           </View>
         </View>
@@ -286,7 +289,7 @@ export default function SignupScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -301,7 +304,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Jim Carrey"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={colors.placeholder}
                   onChangeText={updateFormValue('name')}
                   autoCapitalize="words"
                 />
@@ -312,7 +315,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="truman@example.com"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={colors.placeholder}
                   onChangeText={updateFormValue('email')}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -324,7 +327,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="(555) 123-4567"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={colors.placeholder}
                   onChangeText={updateFormValue('phone')}
                   keyboardType="phone-pad"
                   maxLength={10}
@@ -337,7 +340,7 @@ export default function SignupScreen() {
                   <TextInput
                     style={styles.passwordInput}
                     placeholder="••••••••"
-                    placeholderTextColor={COLORS.placeholder}
+                    placeholderTextColor={colors.placeholder}
                     onChangeText={updateFormValue('password')}
                     secureTextEntry={!showPassword}
                   />
@@ -345,7 +348,7 @@ export default function SignupScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-off' : 'eye'}
                       size={20}
-                      color={COLORS.textSecondary}
+                      color={colors.textSecondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -360,7 +363,7 @@ export default function SignupScreen() {
                 <Text style={[styles.signupButtonText, !isFormReady && styles.signupButtonTextDisabled]}>
                   Sign Up
                 </Text>
-                {isFormReady && <Ionicons name="arrow-forward" size={20} color="white" />}
+                {isFormReady && <Ionicons name="arrow-forward" size={20} color={colors.surface} />}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => router.push('/login')} style={styles.loginLinkWrapper}>
@@ -376,10 +379,10 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -396,7 +399,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
   },
   content: {
     paddingHorizontal: 32,
@@ -408,12 +411,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 8,
     lineHeight: 24,
   },
@@ -426,33 +429,33 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   input: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
+    borderColor: colors.surfaceHighlight,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
+    borderColor: colors.surfaceHighlight,
   },
   passwordInput: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   eyeIcon: {
     padding: 16,
@@ -461,63 +464,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: colors.accent,
     paddingVertical: 18,
     borderRadius: 100,
     marginTop: 16,
     gap: 8,
-    shadowColor: COLORS.accent,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.3,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
   signupButtonDisabled: {
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: colors.surfaceHighlight,
     shadowOpacity: 0,
   },
   signupButtonText: {
-    color: 'white', // White text on dark button
+    color: colors.surface, // White text on dark button (or dark on white in dark mode? No, surface is opposite of accent usually)
     fontSize: 18,
     fontWeight: '700',
   },
   signupButtonTextDisabled: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   loginLinkWrapper: {
     marginTop: 16,
     alignItems: 'center',
   },
   loginText: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 15,
   },
   loginLink: {
     fontWeight: '700',
-    color: COLORS.accent,
+    color: colors.accent,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Light overlay
+    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)', // Dynamic overlay
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   loadingContainer: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     padding: 24,
     borderRadius: 20,
     alignItems: 'center',
     gap: 16,
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
+    borderColor: colors.surfaceHighlight,
     shadowColor: 'black',
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
   },
   loadingText: {
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -13,11 +13,14 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import PremiumAlert from '../components/PremiumAlert';
 
 export default function EditProfileScreen() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
+
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [monthlyRent, setMonthlyRent] = useState('');
@@ -120,7 +123,7 @@ export default function EditProfileScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
             <PremiumAlert
                 visible={alertConfig.visible}
                 title={alertConfig.title}
@@ -134,7 +137,7 @@ export default function EditProfileScreen() {
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
                 <View style={{ width: 40 }} />
@@ -148,14 +151,14 @@ export default function EditProfileScreen() {
                         value={name}
                         onChangeText={setName}
                         placeholder="Enter your name"
-                        placeholderTextColor={COLORS.textSecondary}
+                        placeholderTextColor={colors.textSecondary}
                     />
                 </View>
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Email</Text>
                     <View style={[styles.input, styles.disabledInput]}>
-                        <Text style={{ color: COLORS.textSecondary }}>{email}</Text>
+                        <Text style={{ color: colors.textSecondary }}>{email}</Text>
                     </View>
                     <Text style={styles.helperText}>Email cannot be changed</Text>
                 </View>
@@ -171,7 +174,7 @@ export default function EditProfileScreen() {
                             value={monthlyRent}
                             onChangeText={setMonthlyRent}
                             placeholder="0"
-                            placeholderTextColor={COLORS.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                             keyboardType="numeric"
                         />
                     </View>
@@ -182,7 +185,7 @@ export default function EditProfileScreen() {
                             value={cardPayments}
                             onChangeText={setCardPayments}
                             placeholder="0"
-                            placeholderTextColor={COLORS.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                             keyboardType="numeric"
                         />
                     </View>
@@ -196,7 +199,7 @@ export default function EditProfileScreen() {
                             value={monthlyExpenses}
                             onChangeText={setMonthlyExpenses}
                             placeholder="0"
-                            placeholderTextColor={COLORS.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                             keyboardType="numeric"
                         />
                     </View>
@@ -207,7 +210,7 @@ export default function EditProfileScreen() {
                             value={carPayments}
                             onChangeText={setCarPayments}
                             placeholder="0"
-                            placeholderTextColor={COLORS.textSecondary}
+                            placeholderTextColor={colors.textSecondary}
                             keyboardType="numeric"
                         />
                     </View>
@@ -225,10 +228,10 @@ export default function EditProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -242,14 +245,14 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     content: {
         padding: 24,
@@ -261,17 +264,17 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         marginLeft: 4,
     },
     input: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 16,
         fontSize: 16,
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
     },
     row: {
         flexDirection: 'row',
@@ -279,31 +282,31 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: colors.surfaceHighlight,
         marginVertical: 12,
     },
     sectionTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     disabledInput: {
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         borderColor: 'transparent',
     },
     helperText: {
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginLeft: 4,
     },
     saveButton: {
-        backgroundColor: COLORS.textPrimary,
+        backgroundColor: colors.textPrimary,
         borderRadius: 16,
         padding: 18,
         alignItems: 'center',
         marginTop: 24,
-        shadowColor: COLORS.shadow,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.2,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
@@ -313,7 +316,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     saveButtonText: {
-        color: COLORS.surface,
+        color: colors.surface,
         fontSize: 16,
         fontWeight: 'bold',
     },

@@ -13,12 +13,15 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import { sendPasswordChangedEmail } from '../lib/email';
 import PremiumAlert from '../components/PremiumAlert';
 
 export default function ChangePasswordScreen() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
+
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -186,7 +189,7 @@ export default function ChangePasswordScreen() {
                     style={styles.backButton}
                     onPress={() => router.back()}
                 >
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textSecondary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
 
                 <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -196,7 +199,6 @@ export default function ChangePasswordScreen() {
                             Secure your account by updating your password.
                         </Text>
                     </View>
-
                     <View style={styles.form}>
                         {/* Step 1: Email */}
                         {resetStep === 'email' && (
@@ -206,13 +208,13 @@ export default function ChangePasswordScreen() {
                                     <TextInput
                                         style={styles.input}
                                         placeholder="john@example.com"
-                                        placeholderTextColor={COLORS.placeholder}
+                                        placeholderTextColor={colors.placeholder}
                                         value={email}
                                         onChangeText={setEmail}
                                         autoCapitalize="none"
                                         keyboardType="email-address"
                                     />
-                                    <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginLeft: 4 }}>
+                                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 4 }}>
                                         We'll send a verification code to this email.
                                     </Text>
                                 </View>
@@ -222,7 +224,7 @@ export default function ChangePasswordScreen() {
                                     disabled={loading}
                                 >
                                     {loading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={colors.surface} />
                                     ) : (
                                         <Text style={styles.loginButtonText}>Send Code</Text>
                                     )}
@@ -235,13 +237,13 @@ export default function ChangePasswordScreen() {
                             <>
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.label}>Verification Code</Text>
-                                    <Text style={{ color: COLORS.textSecondary, marginBottom: 8, fontSize: 13 }}>
+                                    <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 13 }}>
                                         Check for email from info@tapright.app
                                     </Text>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="123456"
-                                        placeholderTextColor={COLORS.placeholder}
+                                        placeholderTextColor={colors.placeholder}
                                         value={otp}
                                         onChangeText={setOtp}
                                         keyboardType="number-pad"
@@ -255,7 +257,7 @@ export default function ChangePasswordScreen() {
                                     disabled={loading}
                                 >
                                     {loading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={colors.surface} />
                                     ) : (
                                         <Text style={styles.loginButtonText}>Verify Code</Text>
                                     )}
@@ -272,7 +274,7 @@ export default function ChangePasswordScreen() {
                                         <TextInput
                                             style={styles.passwordInput}
                                             placeholder="New Password"
-                                            placeholderTextColor={COLORS.placeholder}
+                                            placeholderTextColor={colors.placeholder}
                                             value={newPassword}
                                             onChangeText={setNewPassword}
                                             secureTextEntry={!showPassword}
@@ -281,7 +283,7 @@ export default function ChangePasswordScreen() {
                                             <Ionicons
                                                 name={showPassword ? 'eye-off' : 'eye'}
                                                 size={20}
-                                                color={COLORS.textSecondary}
+                                                color={colors.textSecondary}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -292,7 +294,7 @@ export default function ChangePasswordScreen() {
                                     disabled={loading}
                                 >
                                     {loading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={colors.surface} />
                                     ) : (
                                         <Text style={styles.loginButtonText}>Update Password</Text>
                                     )}
@@ -306,10 +308,10 @@ export default function ChangePasswordScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
     },
     keyboardView: {
         flex: 1,
@@ -322,7 +324,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
     },
     content: {
         flex: 1,
@@ -335,12 +337,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: '800',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: -0.5,
     },
     subtitle: {
         fontSize: 16,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginTop: 8,
     },
     form: {
@@ -352,33 +354,33 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginLeft: 4,
     },
     input: {
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         paddingHorizontal: 16,
         paddingVertical: 16,
         fontSize: 16,
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
     },
     passwordContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: COLORS.surfaceHighlight,
+        borderColor: colors.surfaceHighlight,
     },
     passwordInput: {
         flex: 1,
         paddingHorizontal: 16,
         paddingVertical: 16,
         fontSize: 16,
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     eyeIcon: {
         padding: 16,
@@ -387,23 +389,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.accent,
+        backgroundColor: colors.accent,
         paddingVertical: 18,
         borderRadius: 100,
         marginTop: 16,
         gap: 8,
-        shadowColor: COLORS.accent,
+        shadowColor: colors.shadow,
         shadowOpacity: 0.3,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 8 },
         elevation: 8,
     },
     loginButtonDisabled: {
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: colors.surfaceHighlight,
         shadowOpacity: 0,
     },
     loginButtonText: {
-        color: 'white',
+        color: colors.surface,
         fontSize: 18,
         fontWeight: '700',
     },

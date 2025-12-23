@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Image, Text } from 'react-native';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface LoadingScreenProps {
     message?: string;
 }
 
 export default function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -40,10 +42,10 @@ export default function LoadingScreen({ message = 'Loading...' }: LoadingScreenP
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -52,9 +54,9 @@ const styles = StyleSheet.create({
         height: 100,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderRadius: 50,
-        shadowColor: COLORS.accent,
+        shadowColor: colors.accent,
         shadowOpacity: 0.5,
         shadowRadius: 20,
         shadowOffset: { width: 0, height: 0 },
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     },
     message: {
         fontSize: 18,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '600',
         letterSpacing: 0.5,
     },

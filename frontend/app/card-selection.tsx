@@ -16,7 +16,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import PremiumAlert from '../components/PremiumAlert';
 import VisualCard from '../components/VisualCard';
 import * as Haptics from 'expo-haptics';
@@ -39,6 +39,9 @@ interface CreditCard {
 
 export default function WalletEditorScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors);
+
   const { onboarding } = useLocalSearchParams();
   const [userCards, setUserCards] = useState<CreditCard[]>([]);
   const [allCards, setAllCards] = useState<CreditCard[]>([]);
@@ -229,7 +232,7 @@ export default function WalletEditorScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>My Wallet</Text>
         <TouchableOpacity
@@ -242,7 +245,7 @@ export default function WalletEditorScreen() {
             }
           }}
         >
-          <Ionicons name="checkmark" size={20} color="white" />
+          <Ionicons name="checkmark" size={20} color={colors.surface} />
         </TouchableOpacity>
       </View>
 
@@ -251,7 +254,7 @@ export default function WalletEditorScreen() {
         {userCards.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconBg}>
-              <Ionicons name="card-outline" size={48} color={COLORS.accent} />
+              <Ionicons name="card-outline" size={48} color={colors.accent} />
             </View>
             <Text style={styles.emptyTitle}>Your wallet is empty</Text>
             <Text style={styles.emptyText}>
@@ -278,7 +281,7 @@ export default function WalletEditorScreen() {
                   style={styles.deleteButton}
                   onPress={() => confirmRemove(card)}
                 >
-                  <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                  <Ionicons name="trash-outline" size={20} color={colors.error} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -288,7 +291,7 @@ export default function WalletEditorScreen() {
               style={styles.bottomAddButton}
               onPress={() => setAddModalVisible(true)}
             >
-              <Ionicons name="add-circle" size={24} color={'white'} />
+              <Ionicons name="add-circle" size={24} color={colors.surface} />
               <Text style={styles.bottomAddText}>Add another card</Text>
             </TouchableOpacity>
           </View>
@@ -306,16 +309,16 @@ export default function WalletEditorScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Card</Text>
             <TouchableOpacity onPress={() => setAddModalVisible(false)} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search e.g. 'Sapphire', 'Amex'..."
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus={false}
@@ -336,7 +339,7 @@ export default function WalletEditorScreen() {
                   <Text style={styles.resultName}>{card.name}</Text>
                   <Text style={styles.resultIssuer}>{card.issuer}</Text>
                 </View>
-                <Ionicons name="add-circle-outline" size={24} color={COLORS.accent} />
+                <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
               </TouchableOpacity>
             ))}
             {getAvailableCards().length === 0 && (
@@ -361,10 +364,10 @@ export default function WalletEditorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -378,15 +381,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceHighlight,
+    borderBottomColor: colors.surfaceHighlight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -394,14 +397,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'black',
+    backgroundColor: colors.textPrimary, // Changed from black/hardcoded
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   scrollContent: {
     padding: 24,
@@ -420,12 +423,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.surfaceHighlight,
-    shadowColor: COLORS.shadow,
+    borderColor: colors.surfaceHighlight,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
@@ -436,11 +439,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 18,
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: colors.textPrimary,
     borderRadius: 16,
     gap: 12,
     marginTop: 12,
-    shadowColor: COLORS.shadow,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -449,7 +452,7 @@ const styles = StyleSheet.create({
   bottomAddText: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'white',
+    color: colors.surface, // Text on textPrimary (inverse)
   },
   // Empty State
   emptyState: {
@@ -460,7 +463,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -468,28 +471,28 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
   },
   addFirstCardButton: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: colors.accent,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 100,
-    shadowColor: COLORS.accent,
+    shadowColor: colors.accent,
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
   addFirstCardText: {
-    color: 'white',
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -497,7 +500,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -505,12 +508,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceHighlight,
+    borderBottomColor: colors.surfaceHighlight,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   closeButton: {
     padding: 4,
@@ -518,7 +521,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: colors.surfaceSoft,
     margin: 20,
     paddingHorizontal: 16,
     height: 50,
@@ -530,7 +533,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   resultList: {
     paddingHorizontal: 20,
@@ -541,7 +544,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceHighlight,
+    borderBottomColor: colors.surfaceHighlight,
   },
   miniCardIcon: {
     width: 40,
@@ -562,16 +565,16 @@ const styles = StyleSheet.create({
   resultName: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.textPrimary,
+    color: colors.textPrimary,
   },
   resultIssuer: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   noResults: {
     textAlign: 'center',
     marginTop: 40,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
   }
 });

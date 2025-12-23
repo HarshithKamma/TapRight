@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PrivacyPolicyScreen() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const styles = makeStyles(colors);
 
     const handleEmailPress = async () => {
         const url = 'mailto:info@tapright.app';
@@ -33,7 +35,7 @@ export default function PrivacyPolicyScreen() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+                    <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Privacy Policy</Text>
             </View>
@@ -84,7 +86,7 @@ export default function PrivacyPolicyScreen() {
                     <Text style={styles.paragraph}>
                         If you have any questions about this Privacy Policy, please contact us at{' '}
                         <Text
-                            style={{ color: COLORS.accent, textDecorationLine: 'underline' }}
+                            style={{ color: colors.accent, textDecorationLine: 'underline' }}
                             onPress={handleEmailPress}
                         >
                             info@tapright.app
@@ -98,10 +100,10 @@ export default function PrivacyPolicyScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -109,15 +111,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingTop: 60,
         paddingBottom: 20,
-        backgroundColor: COLORS.surface,
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.surfaceHighlight,
+        borderBottomColor: colors.surfaceHighlight,
     },
     backButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceSoft,
+        backgroundColor: colors.surfaceSoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -125,14 +127,14 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
     },
     content: {
         padding: 24,
     },
     lastUpdated: {
         fontSize: 14,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 24,
     },
     section: {
@@ -141,13 +143,13 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     paragraph: {
         fontSize: 16,
         lineHeight: 24,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
     },
     bulletList: {
         marginTop: 8,
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     bulletItem: {
         fontSize: 16,
         lineHeight: 24,
-        color: COLORS.textSecondary,
+        color: colors.textSecondary,
         paddingLeft: 8,
     },
     footerSpace: {

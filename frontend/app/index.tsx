@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Dimensions, 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { COLORS } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -68,6 +68,9 @@ const MoneyDrop = ({ delay, startX, duration, size, opacity }: { delay: number, 
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = makeStyles(colors);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -121,7 +124,7 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Money Rain Animation */}
       {drops.map((drop) => (
@@ -171,10 +174,10 @@ export default function SplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     overflow: 'hidden',
   },
   content: {
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(28, 25, 23, 0.05)', // Subtle dark glow
+    backgroundColor: colors.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(28, 25, 23, 0.05)', // Dynamic glow
     transform: [{ scale: 1.2 }],
   },
   logoImage: {
@@ -216,12 +219,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: '800',
-    color: COLORS.textPrimary, // Uses dark stone color
+    color: colors.textPrimary, // Uses dark stone or white
     letterSpacing: -1,
   },
   tagline: {
     fontSize: 18,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '500',
     letterSpacing: 0.5,
   },
@@ -234,18 +237,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.accent, // Dark Stone
+    backgroundColor: colors.accent, // Dark Stone / White
     paddingVertical: 20,
     borderRadius: 100,
     gap: 12,
-    shadowColor: COLORS.accent,
+    shadowColor: colors.shadow,
     shadowOpacity: 0.5, // Stronger shadow for "glowing" effect
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
     elevation: 12,
   },
   primaryButtonText: {
-    color: 'white',
+    color: colors.surface, // Text on button should contrast
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
