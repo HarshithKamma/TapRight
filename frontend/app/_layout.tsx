@@ -10,7 +10,7 @@ export default function Layout() {
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_OUT') {
-                console.log('Auth State: Signed Out');
+                // Auth state changed - handled by navigation
             }
         });
 

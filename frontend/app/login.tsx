@@ -98,7 +98,6 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      console.log('Attempting login with URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -130,7 +129,6 @@ export default function LoginScreen() {
 
       router.replace('/home');
     } catch (error: any) {
-      console.log('Login Error Details:', error);
       // Map generic credential error to user's preferred messaging
       let message = error.message || 'Invalid credentials';
       if (message.includes('Invalid login credentials')) {

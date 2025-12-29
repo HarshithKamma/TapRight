@@ -212,7 +212,6 @@ export default function WalletEditorScreen() {
         .eq('card_id', cardToDelete.id);
 
       if (error) throw error;
-      console.log('Deleted card:', cardToDelete.name);
 
       // Sync names to profile
       await syncProfileCardNames(user.id);
